@@ -30,9 +30,9 @@ sudo cat /etc/rancher/k3s/k3s.yaml
 ```
 
 ### Installation Status
-- [ ] k3s installed on homelab server
-- [ ] kubeconfig copied to WSL
-- [ ] kubectl connectivity verified
+- [x] k3s installed on homelab server
+- [x] kubeconfig copied to WSL
+- [x] kubectl connectivity verified
 
 ### Next Steps
 - Install ingress controller (nginx-ingress)

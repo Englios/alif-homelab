@@ -11,7 +11,7 @@ A self-hosted Kubernetes environment for learning and running applications.
 ## 📋 Current Status
 - [x] SSH setup with key-based authentication
 - [x] CLI tools installed (kubectl, helm, k3sup)
-- [ ] k3s installation (in progress)
+- [x] k3s cluster running (v1.32.5+k3s1)
 - [ ] Minecraft server deployment
 
 ## 🎯 Planned Applications
