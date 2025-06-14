@@ -1,0 +1,8 @@
+/ignore-docs
+
+# Environment variables (contains sensitive info)
+.env
+
+# Kubernetes config files (may contain tokens)
+kubeconfig
+*.kubeconfig
