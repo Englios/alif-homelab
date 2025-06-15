@@ -74,7 +74,7 @@ kubectl logs -n minecraft deployment/minecraft-server -f
 kubectl rollout restart deployment/minecraft-server -n minecraft
 ```
 
-### External Access
+### Server Access Commands
 ```bash
 # Start ngrok tunnel (from WSL)
 ngrok tcp LOCAL_IP:25565
