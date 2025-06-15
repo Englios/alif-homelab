@@ -13,7 +13,7 @@ Building a production-ready Kubernetes homelab environment for learning DevOps c
 ├─────────────────┤    ├──────────────────┤    ├─────────────────┤
 │ WSL (Debian)    │───▶│ Debian Server    │◀───│ ngrok Tunnel    │
 │ kubectl client  │    │ k3s cluster      │    │ Tailscale VPN   │
-│ Development     │    │ 192.168.5.116    │    │ Friends Connect │
+│ Development     │    │ LOCAL_IP         │    │ Friends Connect │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
                               │
                               ▼

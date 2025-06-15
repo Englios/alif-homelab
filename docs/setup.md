@@ -18,10 +18,11 @@
 ## 🚀 Current Architecture
 
 ```
-Internet → ngrok tunnel → WSL → Homelab (192.168.5.x) → k3s → Minecraft Pod
+Internet → ngrok tunnel → WSL → Homelab (LOCAL_IP) → k3s → Minecraft Pod
 ```
 
 ### Network Access
+- **Local**: `LOCAL_IP:25565`
 - **External**: `ngrok-url:port` (temporary URLs)
 - **Remote SSH**: Via Tailscale VPN
 
@@ -44,7 +45,7 @@ homelab-k8s/
 
 ### Minecraft Server Specs
 - **Version**: Minecraft 1.20.1 + Forge 47.2.0
-- **Server Name**: "MAAF Server"
+- **Server Name**: "My Homelab Server"
 - **Capacity**: 20 players
 - **Resources**: 2-6GB RAM, 1-3 CPU cores
 - **Storage**: 20GB persistent volume
@@ -75,8 +76,8 @@ kubectl rollout restart deployment/minecraft-server -n minecraft
 
 ### External Access
 ```bash
-# On homelab server:
-sudo cat /etc/rancher/k3s/k3s.yaml
+# Start ngrok tunnel (from WSL)
+ngrok tcp LOCAL_IP:25565
 
 # SSH via Tailscale (from anywhere)
 ssh homelab-remote  # Using Tailscale IP
