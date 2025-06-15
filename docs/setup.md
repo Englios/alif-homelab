@@ -1,40 +1,112 @@
-# Homelab Setup Guide
+# Homelab Kubernetes Setup Guide
 
-## k3s Installation
+## ✅ Completed Setup
 
-### Manual Installation Process
+### Infrastructure
+- [x] **k3s cluster** - Running on Debian homelab server
+- [x] **Remote kubectl access** - Configured from WSL
+- [x] **SSH access** - Key-based authentication, password disabled
+- [x] **Firewall** - UFW enabled with necessary ports open
+- [x] **Tailscale VPN** - Secure remote access from anywhere
 
-**Step 1: SSH into homelab server**
-```bash
-ssh homelab  # Using SSH alias
+### Applications
+- [x] **Minecraft Server** - Java Edition 1.20.1 + Forge 47.2.0
+- [x] **Persistent Storage** - 20GB PVC for world data
+- [x] **External Access** - ngrok tunnel for friends
+- [x] **Resource Management** - CPU/memory limits configured
+
+## 🚀 Current Architecture
+
+```
+Internet → ngrok tunnel → WSL → Homelab (192.168.5.x) → k3s → Minecraft Pod
 ```
 
-**Step 2: Install k3s with Traefik disabled**
-```bash
-curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable=traefik" sh -
+### Network Access
+- **External**: `ngrok-url:port` (temporary URLs)
+- **Remote SSH**: Via Tailscale VPN
+
+## 📁 Repository Structure
+
+```
+homelab-k8s/
+├── apps/minecraft-server/     # Minecraft deployment manifests
+│   ├── namespace.yaml
+│   ├── pvc.yaml
+│   ├── deployment.yaml
+│   └── service.yaml
+├── docs/                      # Documentation
+├── base/                      # Kustomize base configurations
+├── overlays/                  # Environment-specific configs
+└── infrastructure/            # Infrastructure components
 ```
 
-**Step 3: Verify installation**
+## 🎯 Current Status
+
+### Minecraft Server Specs
+- **Version**: Minecraft 1.20.1 + Forge 47.2.0
+- **Server Name**: "MAAF Server"
+- **Capacity**: 20 players
+- **Resources**: 2-6GB RAM, 1-3 CPU cores
+- **Storage**: 20GB persistent volume
+- **Access**: LoadBalancer service
+
+### Kubernetes Components
+- **Namespace**: `minecraft`
+- **Deployment**: `minecraft-server`
+- **Service**: LoadBalancer type
+- **PVC**: 20GB using local-path storage class
+
+## 🔧 Management Commands
+
+### Server Status
 ```bash
-sudo systemctl status k3s
-sudo kubectl get nodes
+# Check all resources
+kubectl get all -n minecraft
+
+# Check resource usage
+kubectl top pods -n minecraft
+
+# View logs
+kubectl logs -n minecraft deployment/minecraft-server -f
+
+# Restart server
+kubectl rollout restart deployment/minecraft-server -n minecraft
 ```
 
-**Step 4: Copy kubeconfig to local machine**
+### External Access
 ```bash
 # On homelab server:
 sudo cat /etc/rancher/k3s/k3s.yaml
 
-# Copy content and save to ~/.kube/config on WSL
-# Update server IP from 127.0.0.1 to your HOMELAB_IP
+# SSH via Tailscale (from anywhere)
+ssh homelab-remote  # Using Tailscale IP
 ```
 
-### Installation Status
-- [x] k3s installed on homelab server
-- [x] kubeconfig copied to WSL
-- [x] kubectl connectivity verified
+## 🛡️ Security Features
 
-### Next Steps
-- Install ingress controller (nginx-ingress)
-- Set up persistent storage
-- Deploy first application (Minecraft server) 
+- [x] **SSH hardening** - Key-based auth only, root login disabled
+- [x] **Firewall** - UFW with minimal required ports
+- [x] **VPN access** - Tailscale for secure remote management
+- [x] **No router exposure** - Using tunnels instead of port forwarding
+- [x] **Resource limits** - Kubernetes resource quotas
+
+## 📚 Learning Achievements
+
+This setup demonstrates:
+- **Kubernetes fundamentals** - Pods, Services, Deployments, PVCs
+- **Container orchestration** - Resource management, persistence
+- **Network security** - VPN, tunneling, firewall configuration
+- **Infrastructure as Code** - YAML manifests, version control
+- **Troubleshooting** - Client/server compatibility, connectivity issues
+
+## 🎮 Gaming Features
+
+- **Modded support** - Forge-enabled for custom modifications
+- **Large world** - 29999984 block world size
+- **All dimensions** - Overworld, Nether, End enabled
+- **Persistent worlds** - Data survives pod restarts
+- **External access** - Friends can join from anywhere
+
+---
+
+**Next**: See `next-steps.md` for upcoming improvements and learning opportunities. 
