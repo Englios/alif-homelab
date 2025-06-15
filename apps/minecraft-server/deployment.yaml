@@ -26,14 +26,18 @@ spec:
           value: "MAAF Server"
         - name: EULA
           value: "TRUE"
-        - name: TYPE
-          value: "FORGE"
-        - name: VERSION
-          value: "1.20.1"
-        - name: FORGE_VERSION
-          value: "47.2.0"
+        - name: MODPACK_PLATFORM
+          value: "MODRINTH"
+        - name: MODRINTH_MODPACK
+          value: "https://modrinth.com/modpack/better-mc-forge-bmc4/version/v34.5"
+        - name: MODRINTH_OVERRIDES_EXCLUSIONS
+          value: "config/paxi/datapacks/BE_default_endgen_fix*"
+        - name: MODRINTH_FORCE_SYNCHRONIZE
+          value: "true"
         - name: MEMORY
-          value: "4G"  # Base memory, VPA will adjust this
+          value: "4G"
+        - name: FORCE_REINSTALL
+          value: "true"
         - name: MAX_PLAYERS
           value: "20"
         - name: DIFFICULTY
@@ -43,8 +47,6 @@ spec:
         - name: ALLOW_END
           value: "true"
         - name: ANNOUNCE_PLAYER_ACHIEVEMENTS
-          value: "true"
-        - name: ENABLE_COMMAND_BLOCK
           value: "true"
         - name: GENERATE_STRUCTURES
           value: "true"
