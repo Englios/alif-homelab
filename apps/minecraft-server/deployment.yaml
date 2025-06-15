@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minecraft-server
+  namespace: minecraft
+  labels:
+    app: minecraft-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minecraft-server
+  template:
+    metadata:
+      labels:
+        app: minecraft-server
+    spec:
+      containers:
+      - name: minecraft
+        image: itzg/minecraft-server:latest
+        ports:
+        - containerPort: 25565
+          name: minecraft
+        env:
+        - name: SERVER_NAME
+          value: "MAAF Server"
+        - name: EULA
+          value: "TRUE"
+        - name: TYPE
+          value: "FORGE"
+        - name: VERSION
+          value: "1.20.1"
+        - name: FORGE_VERSION
+          value: "47.2.0"
+        - name: MEMORY
+          value: "4G"  # Base memory, VPA will adjust this
+        - name: MAX_PLAYERS
+          value: "20"
+        - name: DIFFICULTY
+          value: "normal"
+        - name: ALLOW_NETHER
+          value: "true"
+        - name: ALLOW_END
+          value: "true"
+        - name: ANNOUNCE_PLAYER_ACHIEVEMENTS
+          value: "true"
+        - name: ENABLE_COMMAND_BLOCK
+          value: "true"
+        - name: GENERATE_STRUCTURES
+          value: "true"
+        - name: HARDCORE
+          value: "false"
+        - name: MAX_BUILD_HEIGHT
+          value: "256"
+        - name: MAX_WORLD_SIZE
+          value: "29999984"  # Large world
+        - name: PVP
+          value: "true"
+        - name: SPAWN_ANIMALS
+          value: "true"
+        - name: SPAWN_MONSTERS
+          value: "true"
+        - name: SPAWN_NPCS
+          value: "true"
+        - name: VIEW_DISTANCE
+          value: "10"
+        - name: FORCE_GAMEMODE
+          value: "true"
+        - name: PLAYER_IDLE_TIMEOUT
+          value: "0"
+        resources:
+          requests:
+            memory: "2Gi"  # Minimum for VPA
+            cpu: "1"
+          limits:
+            memory: "6Gi"  # Maximum for VPA
+            cpu: "3"
+        volumeMounts:
+        - name: minecraft-data
+          mountPath: /data
+        readinessProbe:
+          exec:
+            command:
+            - mc-monitor
+            - status
+            - --host
+            - localhost
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          failureThreshold: 20
+        livenessProbe:
+          exec:
+            command:
+            - mc-monitor
+            - status
+            - --host
+            - localhost
+          initialDelaySeconds: 120
+          periodSeconds: 60
+      volumes:
+      - name: minecraft-data
+        persistentVolumeClaim:
+          claimName: minecraft-data
+              
