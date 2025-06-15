@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minecraft-bore-tunnel
+  namespace: minecraft
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minecraft-bore-tunnel
+  template:
+    metadata:
+      labels:
+        app: minecraft-bore-tunnel
+    spec:
+      containers:
+      - name: bore-tunnel
+        image: alpine:latest
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - |
+            apk add --no-cache curl
+            curl -L https://github.com/ekzhang/bore/releases/download/v0.6.0/bore-v0.6.0-x86_64-unknown-linux-musl.tar.gz | tar xz
+            chmod +x bore
+            ./bore local 25565 --to bore.pub --local-host minecraft-server.minecraft.svc.cluster.local
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+        env:
+        - name: RUST_LOG
+          value: "info"
+      restartPolicy: Always 

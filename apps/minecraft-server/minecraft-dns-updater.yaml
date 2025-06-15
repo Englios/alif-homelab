@@ -1,0 +1,172 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minecraft-dns-updater
+  namespace: minecraft
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minecraft-dns-updater
+  template:
+    metadata:
+      labels:
+        app: minecraft-dns-updater
+    spec:
+      serviceAccountName: minecraft-dns-updater
+      containers:
+      - name: dns-updater
+        image: alpine:latest
+        command: ["/bin/sh"]
+        args: 
+          - -c
+          - |
+            apk add --no-cache curl jq
+            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+            chmod +x kubectl
+            mv kubectl /usr/local/bin/
+            
+            # Inline the DNS update script
+            API_TOKEN="${CF_API_TOKEN}"
+            ZONE_ID="${CF_ZONE_ID}"
+            DOMAIN="minecraft.alifaiman.cloud"
+            
+            get_bore_port() {
+                kubectl logs -n minecraft -l app=minecraft-bore-tunnel --tail=10 | \
+                grep "listening at bore.pub:" | \
+                tail -1 | \
+                sed 's/.*bore.pub:\([0-9]*\).*/\1/'
+            }
+            
+                         update_srv_record() {
+                 local port=$1
+                 echo "Updating SRV records to port $port"
+                 
+                 # Update custom SRV record (_minecraft.alifaiman.cloud)
+                 RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?type=SRV&name=_minecraft.alifaiman.cloud" \
+                     -H "Authorization: Bearer $API_TOKEN" \
+                     -H "Content-Type: application/json" | \
+                     jq -r '.result[0].id // empty')
+                 
+                 SRV_DATA="{
+                     \"type\": \"SRV\",
+                     \"name\": \"_minecraft\",
+                     \"data\": {
+                         \"priority\": 0,
+                         \"weight\": 5,
+                         \"port\": $port,
+                         \"target\": \"minecraft.alifaiman.cloud\"
+                     },
+                     \"ttl\": 300
+                 }"
+                 
+                 if [ -n "$RECORD_ID" ] && [ "$RECORD_ID" != "null" ]; then
+                     echo "Updating custom SRV record"
+                     curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records/$RECORD_ID" \
+                         -H "Authorization: Bearer $API_TOKEN" \
+                         -H "Content-Type: application/json" \
+                         -d "$SRV_DATA"
+                 else
+                     echo "Creating custom SRV record"
+                     curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
+                         -H "Authorization: Bearer $API_TOKEN" \
+                         -H "Content-Type: application/json" \
+                         -d "$SRV_DATA"
+                 fi
+                 
+                 # Update standard Minecraft SRV record (_minecraft._tcp.minecraft.alifaiman.cloud)
+                 STANDARD_RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?type=SRV&name=_minecraft._tcp.minecraft.alifaiman.cloud" \
+                     -H "Authorization: Bearer $API_TOKEN" \
+                     -H "Content-Type: application/json" | \
+                     jq -r '.result[0].id // empty')
+                 
+                 STANDARD_SRV_DATA="{
+                     \"type\": \"SRV\",
+                     \"name\": \"_minecraft._tcp.minecraft\",
+                     \"data\": {
+                         \"priority\": 0,
+                         \"weight\": 5,
+                         \"port\": $port,
+                         \"target\": \"minecraft.alifaiman.cloud\"
+                     },
+                     \"ttl\": 300
+                 }"
+                 
+                 if [ -n "$STANDARD_RECORD_ID" ] && [ "$STANDARD_RECORD_ID" != "null" ]; then
+                     echo "Updating standard Minecraft SRV record"
+                     curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records/$STANDARD_RECORD_ID" \
+                         -H "Authorization: Bearer $API_TOKEN" \
+                         -H "Content-Type: application/json" \
+                         -d "$STANDARD_SRV_DATA"
+                 else
+                     echo "Creating standard Minecraft SRV record"
+                     curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
+                         -H "Authorization: Bearer $API_TOKEN" \
+                         -H "Content-Type: application/json" \
+                         -d "$STANDARD_SRV_DATA"
+                 fi
+             }
+            
+            # Main monitoring loop
+            LAST_PORT=""
+            while true; do
+                CURRENT_PORT=$(get_bore_port)
+                
+                if [ -n "$CURRENT_PORT" ] && [ "$CURRENT_PORT" != "$LAST_PORT" ]; then
+                    echo "Port changed from $LAST_PORT to $CURRENT_PORT"
+                    update_srv_record "$CURRENT_PORT"
+                    LAST_PORT="$CURRENT_PORT"
+                fi
+                
+                sleep 30
+            done
+        env:
+        - name: CF_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: cloudflare-dns-secret
+              key: api-token
+        - name: CF_ZONE_ID
+          valueFrom:
+            secretKeyRef:
+              name: cloudflare-dns-secret
+              key: zone-id
+
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "50m"
+          limits:
+            memory: "64Mi"
+            cpu: "100m"
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: minecraft-dns-updater
+  namespace: minecraft
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: minecraft
+  name: minecraft-dns-updater
+rules:
+- apiGroups: [""]
+  resources: ["pods", "pods/log"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: minecraft-dns-updater
+  namespace: minecraft
+subjects:
+- kind: ServiceAccount
+  name: minecraft-dns-updater
+  namespace: minecraft
+roleRef:
+  kind: Role
+  name: minecraft-dns-updater
+  apiGroup: rbac.authorization.k8s.io 

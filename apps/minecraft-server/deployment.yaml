@@ -27,13 +27,14 @@ spec:
         - name: EULA
           value: "TRUE"
         - name: MODPACK_PLATFORM
-          value: "MODRINTH"
-        - name: MODRINTH_MODPACK
-          value: "https://modrinth.com/modpack/better-mc-forge-bmc4/version/v34.5"
-        - name: MODRINTH_OVERRIDES_EXCLUSIONS
-          value: "config/paxi/datapacks/BE_default_endgen_fix*"
-        - name: MODRINTH_FORCE_SYNCHRONIZE
-          value: "true"
+          value: "AUTO_CURSEFORGE"
+        - name: CF_SLUG
+          value: "better-mc-forge-bmc4"
+        - name: CF_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: curseforge-api
+              key: api-key
         - name: MEMORY
           value: "4G"
         - name: FORCE_REINSTALL
