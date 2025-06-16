@@ -20,10 +20,81 @@ spec:
         args:
           - -c
           - |
-            apk add --no-cache curl
+            apk add --no-cache curl netcat-openbsd
             curl -L https://github.com/ekzhang/bore/releases/download/v0.6.0/bore-v0.6.0-x86_64-unknown-linux-musl.tar.gz | tar xz
             chmod +x bore
-            ./bore local 25565 --to bore.pub --local-host minecraft-server.minecraft.svc.cluster.local
+            
+            # Health check function
+            health_check() {
+              # Check if bore process is running
+              if ! pgrep -f "./bore local" > /dev/null; then
+                echo "ERROR: Bore process not running"
+                return 1
+              fi
+              
+              # Check if we can connect to minecraft server
+              if ! nc -z minecraft-server.minecraft.svc.cluster.local 25565; then
+                echo "ERROR: Cannot connect to minecraft server"
+                return 1
+              fi
+              
+              # Extract current port from logs
+              CURRENT_PORT=$(ps aux | grep "./bore local" | grep -o "bore\.pub:[0-9]*" | cut -d: -f2 | head -1)
+              if [ -n "$CURRENT_PORT" ]; then
+                # Test external connectivity (with timeout)
+                if timeout 5s nc -z bore.pub "$CURRENT_PORT" 2>/dev/null; then
+                  echo "SUCCESS: Tunnel healthy on port $CURRENT_PORT"
+                  return 0
+                else
+                  echo "ERROR: External tunnel not accessible on port $CURRENT_PORT"
+                  return 1
+                fi
+              else
+                echo "ERROR: No active tunnel port found"
+                return 1
+              fi
+            }
+            
+            # Start bore tunnel with retry logic
+            start_tunnel() {
+              echo "Starting bore tunnel..."
+              ./bore local 25565 --to bore.pub --local-host minecraft-server.minecraft.svc.cluster.local &
+              BORE_PID=$!
+              
+              # Wait for tunnel to establish
+              sleep 10
+              
+              # Verify tunnel is working
+              if health_check; then
+                echo "Tunnel started successfully"
+                return 0
+              else
+                echo "Tunnel failed to start properly, killing and retrying..."
+                kill $BORE_PID 2>/dev/null || true
+                sleep 5
+                return 1
+              fi
+            }
+            
+            # Main loop with health monitoring
+            while true; do
+              if ! start_tunnel; then
+                echo "Tunnel start failed, retrying in 30 seconds..."
+                sleep 30
+                continue
+              fi
+              
+              # Monitor tunnel health every 60 seconds
+              while true; do
+                sleep 60
+                if ! health_check; then
+                  echo "Health check failed, restarting tunnel..."
+                  pkill -f "./bore local" || true
+                  sleep 5
+                  break
+                fi
+              done
+            done
         resources:
           requests:
             memory: "64Mi"
@@ -34,4 +105,44 @@ spec:
         env:
         - name: RUST_LOG
           value: "info"
+        # Add health probes
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - |
+              # Check if bore process is running and has established connection
+              if pgrep -f "./bore local" > /dev/null; then
+                # Check if we have a listening port in recent logs
+                if ps aux | grep "./bore local" | grep -q "bore\.pub:[0-9]*"; then
+                  exit 0
+                fi
+              fi
+              exit 1
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          failureThreshold: 3
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - |
+              # More comprehensive liveness check
+              if ! pgrep -f "./bore local" > /dev/null; then
+                echo "Bore process not running"
+                exit 1
+              fi
+              
+              # Check if we can connect to minecraft server
+              if ! nc -z minecraft-server.minecraft.svc.cluster.local 25565; then
+                echo "Cannot connect to minecraft server"
+                exit 1
+              fi
+              
+              exit 0
+          initialDelaySeconds: 60
+          periodSeconds: 120
+          failureThreshold: 2
       restartPolicy: Always 
