@@ -1,0 +1,171 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tunnel-watchdog
+  namespace: minecraft
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tunnel-watchdog
+  template:
+    metadata:
+      labels:
+        app: tunnel-watchdog
+    spec:
+      serviceAccountName: tunnel-watchdog
+      containers:
+      - name: watchdog
+        image: alpine:latest
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - |
+            apk add --no-cache curl jq netcat-openbsd
+            
+            # Install kubectl
+            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+            chmod +x kubectl
+            mv kubectl /usr/local/bin/
+            
+            echo "🔍 Starting Tunnel Watchdog..."
+            
+            # Function to get current bore port
+            get_bore_port() {
+              kubectl logs -n minecraft -l app=minecraft-bore-tunnel --tail=20 | \
+                grep "listening at bore.pub:" | \
+                tail -1 | \
+                sed 's/.*bore.pub:\([0-9]*\).*/\1/'
+            }
+            
+            # Function to test tunnel connectivity
+            test_tunnel() {
+              local port=$1
+              if [ -z "$port" ]; then
+                echo "❌ No port provided"
+                return 1
+              fi
+              
+              echo "🧪 Testing tunnel on port $port..."
+              if timeout 10s nc -z bore.pub "$port" 2>/dev/null; then
+                echo "✅ Tunnel accessible on port $port"
+                return 0
+              else
+                echo "❌ Tunnel not accessible on port $port"
+                return 1
+              fi
+            }
+            
+            # Function to restart bore tunnel
+            restart_tunnel() {
+              echo "🔄 Restarting bore tunnel..."
+              kubectl rollout restart deployment/minecraft-bore-tunnel -n minecraft
+              
+              # Wait for new pod to be ready
+              echo "⏳ Waiting for new tunnel pod..."
+              kubectl wait --for=condition=ready pod -l app=minecraft-bore-tunnel -n minecraft --timeout=120s
+              
+              # Wait a bit more for tunnel to establish
+              sleep 30
+            }
+            
+            # Function to send alert (placeholder - could integrate with Slack, email, etc.)
+            send_alert() {
+              local message=$1
+              echo "🚨 ALERT: $message"
+              # TODO: Add actual alerting mechanism
+              # curl -X POST -H 'Content-type: application/json' \
+              #   --data "{\"text\":\"$message\"}" \
+              #   "$SLACK_WEBHOOK_URL"
+            }
+            
+            # Main monitoring loop
+            CONSECUTIVE_FAILURES=0
+            MAX_FAILURES=3
+            CHECK_INTERVAL=60
+            
+            while true; do
+              echo "🔍 Checking tunnel health..."
+              
+              # Get current port
+              CURRENT_PORT=$(get_bore_port)
+              
+              if [ -z "$CURRENT_PORT" ]; then
+                echo "⚠️  No active tunnel port found"
+                CONSECUTIVE_FAILURES=$((CONSECUTIVE_FAILURES + 1))
+              else
+                # Test tunnel connectivity
+                if test_tunnel "$CURRENT_PORT"; then
+                  echo "✅ Tunnel healthy on port $CURRENT_PORT"
+                  CONSECUTIVE_FAILURES=0
+                else
+                  echo "❌ Tunnel unhealthy on port $CURRENT_PORT"
+                  CONSECUTIVE_FAILURES=$((CONSECUTIVE_FAILURES + 1))
+                fi
+              fi
+              
+              # Check if we need to restart
+              if [ $CONSECUTIVE_FAILURES -ge $MAX_FAILURES ]; then
+                send_alert "Tunnel has failed $CONSECUTIVE_FAILURES consecutive health checks. Restarting..."
+                restart_tunnel
+                CONSECUTIVE_FAILURES=0
+                
+                # Wait longer after restart
+                sleep 120
+              else
+                sleep $CHECK_INTERVAL
+              fi
+            done
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "50m"
+          limits:
+            memory: "64Mi"
+            cpu: "100m"
+        env:
+        - name: SLACK_WEBHOOK_URL
+          valueFrom:
+            secretKeyRef:
+              name: alerting-secrets
+              key: slack-webhook
+              optional: true
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tunnel-watchdog
+  namespace: minecraft
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: minecraft
+  name: tunnel-watchdog
+rules:
+- apiGroups: [""]
+  resources: ["pods", "pods/log"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "patch"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tunnel-watchdog
+  namespace: minecraft
+subjects:
+- kind: ServiceAccount
+  name: tunnel-watchdog
+  namespace: minecraft
+roleRef:
+  kind: Role
+  name: tunnel-watchdog
+  apiGroup: rbac.authorization.k8s.io 

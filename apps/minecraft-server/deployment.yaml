@@ -26,14 +26,19 @@ spec:
           value: "MAAF Server"
         - name: EULA
           value: "TRUE"
-        - name: TYPE
-          value: "FORGE"
-        - name: VERSION
-          value: "1.20.1"
-        - name: FORGE_VERSION
-          value: "47.2.0"
+        - name: MODPACK_PLATFORM
+          value: "AUTO_CURSEFORGE"
+        - name: CF_SLUG
+          value: "better-mc-forge-bmc4"
+        - name: CF_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: curseforge-api
+              key: api-key
         - name: MEMORY
-          value: "4G"  # Base memory, VPA will adjust this
+          value: "4G"
+        - name: FORCE_REINSTALL
+          value: "true"
         - name: MAX_PLAYERS
           value: "20"
         - name: DIFFICULTY
@@ -43,8 +48,6 @@ spec:
         - name: ALLOW_END
           value: "true"
         - name: ANNOUNCE_PLAYER_ACHIEVEMENTS
-          value: "true"
-        - name: ENABLE_COMMAND_BLOCK
           value: "true"
         - name: GENERATE_STRUCTURES
           value: "true"
