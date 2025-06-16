@@ -21,7 +21,7 @@ spec:
         args: 
           - -c
           - |
-            apk add --no-cache curl jq
+            apk add --no-cache curl jq netcat-openbsd
             curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
             chmod +x kubectl
             mv kubectl /usr/local/bin/
@@ -107,15 +107,38 @@ spec:
                  fi
              }
             
-            # Main monitoring loop
+            # Enhanced monitoring with health checks
             LAST_PORT=""
+            FAILED_CHECKS=0
+            MAX_FAILED_CHECKS=5
+            
             while true; do
                 CURRENT_PORT=$(get_bore_port)
                 
-                if [ -n "$CURRENT_PORT" ] && [ "$CURRENT_PORT" != "$LAST_PORT" ]; then
-                    echo "Port changed from $LAST_PORT to $CURRENT_PORT"
-                    update_srv_record "$CURRENT_PORT"
-                    LAST_PORT="$CURRENT_PORT"
+                if [ -n "$CURRENT_PORT" ]; then
+                    # Test if the tunnel is actually accessible
+                    if timeout 10s nc -z bore.pub "$CURRENT_PORT" 2>/dev/null; then
+                        echo "✅ Tunnel healthy on port $CURRENT_PORT"
+                        FAILED_CHECKS=0
+                        
+                        # Update DNS if port changed
+                        if [ "$CURRENT_PORT" != "$LAST_PORT" ]; then
+                            echo "🔄 Port changed from $LAST_PORT to $CURRENT_PORT"
+                            update_srv_record "$CURRENT_PORT"
+                            LAST_PORT="$CURRENT_PORT"
+                        fi
+                    else
+                        echo "❌ Tunnel not accessible on port $CURRENT_PORT"
+                        FAILED_CHECKS=$((FAILED_CHECKS + 1))
+                        
+                        if [ $FAILED_CHECKS -ge $MAX_FAILED_CHECKS ]; then
+                            echo "🚨 Tunnel failed $FAILED_CHECKS consecutive checks - may need restart"
+                            # Could trigger alert here
+                        fi
+                    fi
+                else
+                    echo "⚠️  No active tunnel port found"
+                    FAILED_CHECKS=$((FAILED_CHECKS + 1))
                 fi
                 
                 sleep 30
