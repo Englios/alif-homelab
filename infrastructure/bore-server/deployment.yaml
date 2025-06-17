@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bore-server
+  namespace: bore-server
+  labels:
+    app: bore-server
+spec:
+  replicas: 1  # Only need one bore server
+  selector:
+    matchLabels:
+      app: bore-server
+  template:
+    metadata:
+      labels:
+        app: bore-server
+    spec:
+      containers:
+      - name: bore-server
+        image: alpine:latest  # Small Linux image with package manager
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - |
+            # Install curl to download bore
+            apk add --no-cache curl
+            
+            # Download and extract bore binary
+            curl -L https://github.com/ekzhang/bore/releases/download/v0.6.0/bore-v0.6.0-x86_64-unknown-linux-musl.tar.gz | tar xz
+            chmod +x bore
+            
+            # Start bore server
+            echo "🚀 Starting bore server..."
+            echo "Listening on port 7835"
+            echo "Tunnel ports: 1024-65535"
+            ./bore server --min-port 1024 --max-port 65535
+        ports:
+        - containerPort: 7835
+          name: bore-server
+          protocol: TCP
+        resources:
+          requests:
+            memory: "64Mi"   # Minimum memory needed
+            cpu: "50m"       # Minimum CPU (0.05 cores)
+          limits:
+            memory: "128Mi"  # Maximum memory allowed
+            cpu: "100m"      # Maximum CPU (0.1 cores)
+        # Health checks to ensure container is working
+        livenessProbe:
+          tcpSocket:
+            port: 7835
+          initialDelaySeconds: 30  # Wait 30s before first check
+          periodSeconds: 60        # Check every 60s
+        readinessProbe:
+          tcpSocket:
+            port: 7835
+          initialDelaySeconds: 10  # Wait 10s before first check
+          periodSeconds: 30        # Check every 30s 

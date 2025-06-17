@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: bore-server
+  namespace: bore-server
+  labels:
+    app: bore-server
+spec:
+  type: LoadBalancer  # Exposes service externally with cloud provider's load balancer
+  ports:
+  - port: 7835          # External port
+    targetPort: 7835    # Container port
+    name: bore-server
+    protocol: TCP
+  selector:
+    app: bore-server    # Routes traffic to pods with this label 

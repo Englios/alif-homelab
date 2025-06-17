@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bore-server
+  labels:
+    purpose: tunnel-infrastructure
+    component: bore-server 
