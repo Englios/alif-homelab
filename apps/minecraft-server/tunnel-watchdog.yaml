@@ -21,6 +21,7 @@ spec:
         args:
           - -c
           - |
+            # Install kubectl and additional tools
             apk add --no-cache curl jq netcat-openbsd
             
             # Install kubectl
@@ -29,13 +30,30 @@ spec:
             mv kubectl /usr/local/bin/
             
             echo "🔍 Starting Tunnel Watchdog..."
+            echo "Monitoring $BORE_SERVER_TYPE server at $BORE_SERVER_IP"
             
             # Function to get current bore port
             get_bore_port() {
-              kubectl logs -n minecraft -l app=minecraft-bore-tunnel --tail=20 | \
-                grep "listening at bore.pub:" | \
-                tail -1 | \
-                sed 's/.*bore.pub:\([0-9]*\).*/\1/'
+              case "$BORE_SERVER_TYPE" in
+                "digitalocean")
+                  # Get port from DigitalOcean tunnel logs
+                  kubectl logs -n minecraft -l app=minecraft-bore-tunnel --tail=20 | \
+                  grep "listening at $BORE_SERVER_IP:" | \
+                  tail -1 | \
+                  sed "s/.*listening at $BORE_SERVER_IP:\([0-9]*\).*/\1/"
+                  ;;
+                "homelab")
+                  # Get port from homelab bore server logs
+                  kubectl logs -n infrastructure -l app=bore-server --tail=10 | \
+                  grep "new client host=0.0.0.0 port=" | \
+                  tail -1 | \
+                  sed 's/.*port=\([0-9]*\).*/\1/'
+                  ;;
+                *)
+                  echo "Unknown bore server type: $BORE_SERVER_TYPE" >&2
+                  return 1
+                  ;;
+              esac
             }
             
             # Function to test tunnel connectivity
@@ -46,12 +64,12 @@ spec:
                 return 1
               fi
               
-              echo "🧪 Testing tunnel on port $port..."
-              if timeout 10s nc -z bore.pub "$port" 2>/dev/null; then
-                echo "✅ Tunnel accessible on port $port"
+              echo "🧪 Testing $BORE_SERVER_TYPE tunnel on $BORE_SERVER_IP:$port..."
+              if timeout 10s nc -z "$BORE_SERVER_IP" "$port" 2>/dev/null; then
+                echo "✅ Tunnel accessible on $BORE_SERVER_IP:$port"
                 return 0
               else
-                echo "❌ Tunnel not accessible on port $port"
+                echo "❌ Tunnel not accessible on $BORE_SERVER_IP:$port"
                 return 1
               fi
             }
@@ -68,17 +86,7 @@ spec:
               # Wait a bit more for tunnel to establish
               sleep 30
             }
-            
-            # Function to send alert (placeholder - could integrate with Slack, email, etc.)
-            send_alert() {
-              local message=$1
-              echo "🚨 ALERT: $message"
-              # TODO: Add actual alerting mechanism
-              # curl -X POST -H 'Content-type: application/json' \
-              #   --data "{\"text\":\"$message\"}" \
-              #   "$SLACK_WEBHOOK_URL"
-            }
-            
+          
             # Main monitoring loop
             CONSECUTIVE_FAILURES=0
             MAX_FAILURES=3
@@ -106,7 +114,7 @@ spec:
               
               # Check if we need to restart
               if [ $CONSECUTIVE_FAILURES -ge $MAX_FAILURES ]; then
-                send_alert "Tunnel has failed $CONSECUTIVE_FAILURES consecutive health checks. Restarting..."
+                echo "🚨 Tunnel has failed $CONSECUTIVE_FAILURES consecutive health checks. Restarting..."
                 restart_tunnel
                 CONSECUTIVE_FAILURES=0
                 
@@ -124,12 +132,16 @@ spec:
             memory: "64Mi"
             cpu: "100m"
         env:
-        - name: SLACK_WEBHOOK_URL
+        - name: BORE_SERVER_IP
           valueFrom:
             secretKeyRef:
-              name: alerting-secrets
-              key: slack-webhook
-              optional: true
+              name: bore-server-config
+              key: server-ip
+        - name: BORE_SERVER_TYPE
+          valueFrom:
+            secretKeyRef:
+              name: bore-server-config
+              key: server-type
 
 ---
 apiVersion: v1
