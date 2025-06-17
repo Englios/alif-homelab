@@ -42,10 +42,10 @@ spec:
               return 0
             }
             
-            # Start bore tunnel with homelab bore server
+            # Start bore tunnel with configured bore server
             start_tunnel() {
-              echo "Starting homelab bore tunnel..."
-              ./bore local 25565 --to 192.168.5.116 --local-host minecraft-server.minecraft.svc.cluster.local &
+              echo "Starting $BORE_SERVER_TYPE bore tunnel..."
+              ./bore local 25565 --to $BORE_SERVER_IP --local-host minecraft-server.minecraft.svc.cluster.local &
               BORE_PID=$!
               
               # Wait for tunnel to establish
@@ -53,10 +53,10 @@ spec:
               
               # Basic verification
               if health_check; then
-                echo "Homelab tunnel started successfully"
+                echo "$BORE_SERVER_TYPE tunnel started successfully"
                 return 0
               else
-                echo "Homelab tunnel failed basic health check, killing and retrying..."
+                echo "$BORE_SERVER_TYPE tunnel failed basic health check, killing and retrying..."
                 kill $BORE_PID 2>/dev/null || true
                 sleep 10
                 return 1
@@ -66,7 +66,7 @@ spec:
             # Main loop with less aggressive monitoring
             while true; do
               if ! start_tunnel; then
-                echo "Homelab tunnel start failed, retrying in 60 seconds..."
+                echo "$BORE_SERVER_TYPE tunnel start failed, retrying in 60 seconds..."
                 sleep 60
                 continue
               fi
@@ -75,12 +75,12 @@ spec:
               while true; do
                 sleep 300  # 5 minutes
                 if ! health_check; then
-                  echo "Health check failed, restarting homelab tunnel..."
+                  echo "Health check failed, restarting $BORE_SERVER_TYPE tunnel..."
                   pkill -f "./bore local" || true
                   sleep 10
                   break
                 fi
-                echo "Health check passed - homelab tunnel stable"
+                echo "Health check passed - $BORE_SERVER_TYPE tunnel stable"
               done
             done
         resources:
@@ -93,6 +93,16 @@ spec:
         env:
         - name: RUST_LOG
           value: "info"
+        - name: BORE_SERVER_IP
+          valueFrom:
+            secretKeyRef:
+              name: bore-server-config
+              key: server-ip
+        - name: BORE_SERVER_TYPE
+          valueFrom:
+            secretKeyRef:
+              name: bore-server-config
+              key: server-type
         # More lenient health probes
         readinessProbe:
           exec:
