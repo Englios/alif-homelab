@@ -1,6 +1,7 @@
-/ignore-docs
 **/data
 
+# ignore anything starting with ignore
+**/ignore* 
 # Environment variables (contains sensitive info)
 .env
 
