@@ -5,6 +5,8 @@ metadata:
   namespace: minecraft
 spec:
   replicas: 1
+  strategy:
+    type: Recreate  # This ensures old pod terminates before new one starts
   selector:
     matchLabels:
       app: minecraft-bore-tunnel
@@ -13,6 +15,7 @@ spec:
       labels:
         app: minecraft-bore-tunnel
     spec:
+      terminationGracePeriodSeconds: 60  # Give pod 60 seconds to shut down gracefully
       containers:
       - name: bore-tunnel
         image: alpine:latest
@@ -41,6 +44,20 @@ spec:
               echo "SUCCESS: Basic health checks passed"
               return 0
             }
+            
+            # Graceful shutdown handler
+            cleanup() {
+              echo "Shutting down bore tunnel gracefully..."
+              if [ -n "$BORE_PID" ]; then
+                kill $BORE_PID 2>/dev/null || true
+                wait $BORE_PID 2>/dev/null || true
+              fi
+              pkill -f "./bore local" 2>/dev/null || true
+              exit 0
+            }
+            
+            # Set up signal handlers
+            trap cleanup SIGTERM SIGINT
             
             # Start bore tunnel with configured bore server
             start_tunnel() {
@@ -71,13 +88,13 @@ spec:
                 continue
               fi
               
-              # Monitor tunnel health every 5 minutes (less aggressive)
+              # Monitor tunnel health every 10 minutes (even less aggressive)
               while true; do
-                sleep 300  # 5 minutes
+                sleep 600  # 10 minutes
                 if ! health_check; then
                   echo "Health check failed, restarting $BORE_SERVER_TYPE tunnel..."
                   pkill -f "./bore local" || true
-                  sleep 10
+                  sleep 30  # Longer wait before restart
                   break
                 fi
                 echo "Health check passed - $BORE_SERVER_TYPE tunnel stable"
@@ -112,9 +129,9 @@ spec:
             - |
               # Simple readiness check - just check if bore process exists
               pgrep -f "./bore local" > /dev/null
-          initialDelaySeconds: 30
+          initialDelaySeconds: 60  # Wait longer for tunnel to establish
           periodSeconds: 60  # Check every minute instead of 30 seconds
-          failureThreshold: 5  # Allow more failures before restart
+          failureThreshold: 10  # Allow even more failures before restart
         livenessProbe:
           exec:
             command:
@@ -134,7 +151,7 @@ spec:
               fi
               
               exit 0
-          initialDelaySeconds: 60
+          initialDelaySeconds: 120  # Wait even longer for initial startup
           periodSeconds: 300  # Check every 5 minutes
-          failureThreshold: 3
+          failureThreshold: 5  # More forgiving
       restartPolicy: Always 
