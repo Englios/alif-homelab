@@ -16,18 +16,15 @@ spec:
       serviceAccountName: minecraft-dns-updater
       containers:
       - name: dns-updater
-        image: alpine:latest
-        command: ["/bin/sh"]
+        image: bitnami/kubectl:latest
+        command: ["/bin/bash"]
         args: 
           - -c
           - |
-            # Install required tools
-            apk add --no-cache curl jq
+            # Install additional required tools 
+            apt-get update && apt-get install -y jq curl -qq
             
-            # Install kubectl
-            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-            chmod +x kubectl
-            mv kubectl /usr/local/bin/
+            # kubectl is already available in bitnami/kubectl image
             
             echo "🚀 Starting DNS Updater for $BORE_SERVER_TYPE server at $BORE_SERVER_IP"
             
