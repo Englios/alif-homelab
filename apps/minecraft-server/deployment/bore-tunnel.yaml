@@ -47,46 +47,6 @@ spec:
             secretKeyRef:
               name: bore-server-config
               key: server-type
-      - name: health-monitor
-        image: busybox:latest
-        command: ["/bin/sh"]
-        args:
-          - -c
-          - |
-            # Simple HTTP health server that checks if bore tunnel is working
-            echo "🔍 Starting bore tunnel health monitor..."
-            
-            # Create a simple health check server
-            while true; do
-              # Test if we can connect to minecraft server (bore tunnel target)
-              if nc -z minecraft-server.minecraft.svc.cluster.local 25565 2>/dev/null; then
-                echo "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nOK" | nc -l -p 8080 -q 1 || true
-              else
-                echo "HTTP/1.1 503 Service Unavailable\r\nContent-Length: 5\r\n\r\nERROR" | nc -l -p 8080 -q 1 || true
-              fi
-            done
-        ports:
-        - containerPort: 8080
-          name: health
-        resources:
-          requests:
-            memory: "8Mi"
-            cpu: "5m"
-          limits:
-            memory: "16Mi"
-            cpu: "20m"
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 8080
-          initialDelaySeconds: 15
-          periodSeconds: 30
-          failureThreshold: 3
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 8080
-          initialDelaySeconds: 30
-          periodSeconds: 60
-          failureThreshold: 3
+        # Note: Health probes removed as the bore image doesn't expose the tunneled port locally
+        # Kubernetes will restart the pod if it crashes
       restartPolicy: Always 
