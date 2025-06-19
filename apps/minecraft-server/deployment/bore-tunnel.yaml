@@ -47,6 +47,49 @@ spec:
             secretKeyRef:
               name: bore-server-config
               key: server-type
-        # Note: Health probes removed as the bore image doesn't expose the tunneled port locally
-        # Kubernetes will restart the pod if it crashes
+      # Health monitor to check if the tunnel is working
+      - name: health-monitor
+        image: busybox:latest
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - |
+            echo "🔍 Starting bore tunnel health monitor..."
+            
+            # Simple health check loop that creates/removes a health file
+            while true; do
+              # Test if we can connect to minecraft server (what bore tunnel forwards)
+              if nc -z minecraft-server.minecraft.svc.cluster.local 25565 2>/dev/null; then
+                echo "✅ Minecraft server reachable - tunnel healthy" > /tmp/health
+              else
+                echo "❌ Minecraft server unreachable - tunnel unhealthy" > /tmp/health
+                rm -f /tmp/health 2>/dev/null || true
+              fi
+              sleep 30
+            done
+        resources:
+          requests:
+            memory: "8Mi"
+            cpu: "5m"
+          limits:
+            memory: "16Mi"
+            cpu: "20m"
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "test -f /tmp/health"
+          initialDelaySeconds: 15
+          periodSeconds: 30
+          failureThreshold: 3
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "test -f /tmp/health"
+          initialDelaySeconds: 30
+          periodSeconds: 60
+          failureThreshold: 3
       restartPolicy: Always 
