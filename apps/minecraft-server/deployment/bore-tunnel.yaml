@@ -23,9 +23,22 @@ spec:
         args:
           - -c
           - |
+            set -e  # Exit on any error
+            echo "📦 Installing dependencies..."
             apk add --no-cache curl netcat-openbsd
-            curl -L https://github.com/ekzhang/bore/releases/download/v0.6.0/bore-v0.6.0-x86_64-unknown-linux-musl.tar.gz | tar xz
+            
+            echo "📥 Downloading bore binary..."
+            curl -L --fail --show-error --retry 3 \
+              https://github.com/ekzhang/bore/releases/download/v0.6.0/bore-v0.6.0-x86_64-unknown-linux-musl.tar.gz \
+              -o bore.tar.gz
+            
+            echo "📂 Extracting bore binary..."
+            tar -xzf bore.tar.gz
             chmod +x bore
+            
+            # Verify bore binary works
+            echo "✅ Verifying bore binary..."
+            ./bore --version || { echo "❌ Bore binary verification failed"; exit 1; }
             
             # More lenient health check function
             health_check() {

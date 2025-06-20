@@ -36,7 +36,7 @@ spec:
               name: curseforge-api
               key: api-key
         - name: MEMORY
-          value: "4G"
+          value: "6G"
         - name: FORCE_REINSTALL
           value: "true"
         - name: MAX_PLAYERS
@@ -66,18 +66,24 @@ spec:
         - name: SPAWN_NPCS
           value: "true"
         - name: VIEW_DISTANCE
-          value: "10"
+          value: "7"
         - name: FORCE_GAMEMODE
           value: "true"
         - name: PLAYER_IDLE_TIMEOUT
           value: "0"
+        - name: JVM_OPTS
+          value: "-XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:MaxGCPauseMillis=50 -XX:+DisableExplicitGC -XX:TargetSurvivorRatio=90 -XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=16m -XX:G1ReservePercent=15 -XX:G1MixedGCCountTarget=4 -XX:G1MixedGCLiveThresholdPercent=90"
+        - name: SIMULATION_DISTANCE
+          value: "6"
+        - name: ENTITY_BROADCAST_RANGE_PERCENTAGE
+          value: "80"
         resources:
           requests:
-            memory: "2Gi"  # Minimum for VPA
-            cpu: "1"
+            memory: "4Gi"
+            cpu: "2"
           limits:
-            memory: "6Gi"  # Maximum for VPA
-            cpu: "3"
+            memory: "8Gi"
+            cpu: "4"
         volumeMounts:
         - name: minecraft-data
           mountPath: /data
