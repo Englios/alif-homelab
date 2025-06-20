@@ -18,108 +18,22 @@ spec:
       terminationGracePeriodSeconds: 60  # Give pod 60 seconds to shut down gracefully
       containers:
       - name: bore-tunnel
-        image: alpine:latest
-        command: ["/bin/sh"]
+        image: ekzhang/bore:latest
+        # Use the default entrypoint ["./bore"] from the image
         args:
-          - -c
-          - |
-            set -e  # Exit on any error
-            echo "📦 Installing dependencies..."
-            apk add --no-cache curl netcat-openbsd
-            
-            echo "📥 Downloading bore binary..."
-            curl -L --fail --show-error --retry 3 \
-              https://github.com/ekzhang/bore/releases/download/v0.6.0/bore-v0.6.0-x86_64-unknown-linux-musl.tar.gz \
-              -o bore.tar.gz
-            
-            echo "📂 Extracting bore binary..."
-            tar -xzf bore.tar.gz
-            chmod +x bore
-            
-            # Verify bore binary works
-            echo "✅ Verifying bore binary..."
-            ./bore --version || { echo "❌ Bore binary verification failed"; exit 1; }
-            
-            # More lenient health check function
-            health_check() {
-              # Check if bore process is running
-              if ! pgrep -f "./bore local" > /dev/null; then
-                echo "ERROR: Bore process not running"
-                return 1
-              fi
-              
-              # Check if we can connect to minecraft server
-              if ! nc -z minecraft-server.minecraft.svc.cluster.local 25565; then
-                echo "ERROR: Cannot connect to minecraft server"
-                return 1
-              fi
-              
-              echo "SUCCESS: Basic health checks passed"
-              return 0
-            }
-            
-            # Graceful shutdown handler
-            cleanup() {
-              echo "Shutting down bore tunnel gracefully..."
-              if [ -n "$BORE_PID" ]; then
-                kill $BORE_PID 2>/dev/null || true
-                wait $BORE_PID 2>/dev/null || true
-              fi
-              pkill -f "./bore local" 2>/dev/null || true
-              exit 0
-            }
-            
-            # Set up signal handlers
-            trap cleanup SIGTERM SIGINT
-            
-            # Start bore tunnel with configured bore server
-            start_tunnel() {
-              echo "Starting $BORE_SERVER_TYPE bore tunnel..."
-              ./bore local 25565 --to $BORE_SERVER_IP --local-host minecraft-server.minecraft.svc.cluster.local &
-              BORE_PID=$!
-              
-              # Wait for tunnel to establish
-              sleep 15
-              
-              # Basic verification
-              if health_check; then
-                echo "$BORE_SERVER_TYPE tunnel started successfully"
-                return 0
-              else
-                echo "$BORE_SERVER_TYPE tunnel failed basic health check, killing and retrying..."
-                kill $BORE_PID 2>/dev/null || true
-                sleep 10
-                return 1
-              fi
-            }
-            
-            # Main loop with less aggressive monitoring
-            while true; do
-              if ! start_tunnel; then
-                echo "$BORE_SERVER_TYPE tunnel start failed, retrying in 60 seconds..."
-                sleep 60
-                continue
-              fi
-              
-              # Monitor tunnel health every 10 minutes (even less aggressive)
-              while true; do
-                sleep 600  # 10 minutes
-                if ! health_check; then
-                  echo "Health check failed, restarting $BORE_SERVER_TYPE tunnel..."
-                  pkill -f "./bore local" || true
-                  sleep 30  # Longer wait before restart
-                  break
-                fi
-                echo "Health check passed - $BORE_SERVER_TYPE tunnel stable"
-              done
-            done
+          - "local"
+          - "25565"
+          - "--to"
+          - "$(BORE_SERVER_IP)"
+          - "--local-host"
+          - "minecraft-server.minecraft.svc.cluster.local"
         resources:
           requests:
+            memory: "32Mi"
+            cpu: "50m"
+          limits:
             memory: "64Mi"
             cpu: "100m"
-          limits:
-            memory: "128Mi"
-            cpu: "200m"
         env:
         - name: RUST_LOG
           value: "info"
@@ -133,38 +47,49 @@ spec:
             secretKeyRef:
               name: bore-server-config
               key: server-type
-        # More lenient health probes
+      # Health monitor to check if the tunnel is working
+      - name: health-monitor
+        image: busybox:latest
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - |
+            echo "🔍 Starting bore tunnel health monitor..."
+            
+            # Simple health check loop that creates/removes a health file
+            while true; do
+              # Test if we can connect to minecraft server (what bore tunnel forwards)
+              if nc -z minecraft-server.minecraft.svc.cluster.local 25565 2>/dev/null; then
+                echo "✅ Minecraft server reachable - tunnel healthy" > /tmp/health
+              else
+                echo "❌ Minecraft server unreachable - tunnel unhealthy" > /tmp/health
+                rm -f /tmp/health 2>/dev/null || true
+              fi
+              sleep 30
+            done
+        resources:
+          requests:
+            memory: "8Mi"
+            cpu: "5m"
+          limits:
+            memory: "16Mi"
+            cpu: "20m"
         readinessProbe:
           exec:
             command:
             - /bin/sh
             - -c
-            - |
-              # Simple readiness check - just check if bore process exists
-              pgrep -f "./bore local" > /dev/null
-          initialDelaySeconds: 60  # Wait longer for tunnel to establish
-          periodSeconds: 60  # Check every minute instead of 30 seconds
-          failureThreshold: 10  # Allow even more failures before restart
+            - "test -f /tmp/health"
+          initialDelaySeconds: 15
+          periodSeconds: 30
+          failureThreshold: 3
         livenessProbe:
           exec:
             command:
             - /bin/sh
             - -c
-            - |
-              # Simple liveness check
-              if ! pgrep -f "./bore local" > /dev/null; then
-                echo "Bore process not running"
-                exit 1
-              fi
-              
-              # Check if we can connect to minecraft server
-              if ! nc -z minecraft-server.minecraft.svc.cluster.local 25565; then
-                echo "Cannot connect to minecraft server"
-                exit 1
-              fi
-              
-              exit 0
-          initialDelaySeconds: 120  # Wait even longer for initial startup
-          periodSeconds: 300  # Check every 5 minutes
-          failureThreshold: 5  # More forgiving
+            - "test -f /tmp/health"
+          initialDelaySeconds: 30
+          periodSeconds: 60
+          failureThreshold: 3
       restartPolicy: Always 

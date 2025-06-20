@@ -16,15 +16,12 @@ spec:
       serviceAccountName: minecraft-dns-updater
       containers:
       - name: dns-updater
-        image: bitnami/kubectl:latest
-        command: ["/bin/bash"]
+        image: alpine/k8s:1.30.13
+        command: ["/bin/sh"]
         args: 
           - -c
           - |
-            # Install additional required tools 
-            apt-get update && apt-get install -y jq curl -qq
-            
-            # kubectl is already available in bitnami/kubectl image
+            echo "✅ Using preinstalled tools: curl, jq, kubectl"
             
             echo "🚀 Starting DNS Updater for $BORE_SERVER_TYPE server at $BORE_SERVER_IP"
             
@@ -59,8 +56,8 @@ spec:
                 echo "📍 Updating A record: $MINECRAFT_DOMAIN -> $BORE_SERVER_IP"
                 A_RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/dns_records?type=A&name=$MINECRAFT_DOMAIN" \
                     -H "Authorization: Bearer $CF_API_TOKEN" \
-                    -H "Content-Type: application/json" | \
-                    jq -r '.result[0].id // empty')
+                    -H "Content-Type: application/json" 2>/dev/null | \
+                    jq -r '.result[0].id // empty' 2>/dev/null || echo "")
                 
                 A_DATA="{\"type\": \"A\", \"name\": \"$A_RECORD_NAME\", \"content\": \"$BORE_SERVER_IP\", \"ttl\": $DNS_TTL}"
                 
