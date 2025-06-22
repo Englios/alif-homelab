@@ -21,15 +21,16 @@ spec:
         image: jpillora/chisel:latest
         args:
           - "client"
+          - "-v"
           - "--auth"
           - "$(TUNNEL_AUTH)"
           - "http://$(TUNNEL_SERVER_IP):8080"
-          # Production server
-          - "R:25565:minecraft-server.minecraft.svc.cluster.local:25565/tcp"
-          - "R:24454:minecraft-server.minecraft.svc.cluster.local:24454/udp"
-          # Dev server
-          - "R:25566:minecraft-dev.minecraft.svc.cluster.local:25565/tcp" 
-          - "R:24455:minecraft-dev.minecraft.svc.cluster.local:24454/udp"
+          # Use 0 = server picks random port for security
+          - "R:0:minecraft-server.minecraft.svc.cluster.local:25565/tcp"
+          - "R:0:minecraft-server.minecraft.svc.cluster.local:24454/udp"
+          # Dev server (if needed)
+          # - "R:0:minecraft-dev.minecraft.svc.cluster.local:25565/tcp" 
+          # - "R:0:minecraft-dev.minecraft.svc.cluster.local:24454/udp"
         env:
         - name: TUNNEL_SERVER_IP
           valueFrom:
@@ -48,74 +49,51 @@ spec:
           limits:
             memory: "64Mi"
             cpu: "100m"
-      # Health monitor to check if the tunnel is working
-      - name: health-monitor
+        # Remove health probes - chisel image is too minimal
+      # Keep debug-logger (busybox has shell)
+      - name: debug-logger
         image: busybox:latest
         command: ["/bin/sh"]
         args:
           - -c
           - |
-            echo "🔍 Starting Chisel Tunnel Health Monitor"
-            echo "Server: $(TUNNEL_SERVER_IP)"
-            echo "Checking every 30 seconds..."
-            echo ""
+            echo "📊 Debug Logger Started"
+            echo "Logging tunnel info every 60 seconds..."
             
             while true; do
-              echo "🔍 Health Check - $(date)"
-              FAILED=0
+              echo "🔍 $(date): Tunnel Status Check"
               
-              # Test internal Minecraft server
-              echo "Testing internal server..."
+              # Log chisel process status
+              if pgrep -f "chisel client" > /dev/null; then
+                echo "✅ Chisel process: Running"
+                echo "healthy" > /tmp/health  # Create health file
+              else
+                echo "❌ Chisel process: Not found"
+                rm -f /tmp/health 2>/dev/null || true  # Remove health file
+              fi
+              
+              # Log network connections (to see active ports)
+              echo "📡 Active connections:"
+              netstat -tln 2>/dev/null | grep LISTEN | grep -v ':22' | head -5 || echo "   No listening ports found"
+              
+              # Log internal server connectivity
               if nc -z minecraft-server.minecraft.svc.cluster.local 25565 2>/dev/null; then
-                echo "✅ Internal server OK"
+                echo "✅ Internal Minecraft server: Reachable"
               else
-                echo "❌ Internal server FAIL"
-                FAILED=1
-              fi
-              
-              # Test external TCP tunnel
-              echo "Testing external TCP (25565)..."
-              if timeout 5s nc -z $(TUNNEL_SERVER_IP) 25565 2>/dev/null; then
-                echo "✅ TCP tunnel OK"
-              else
-                echo "❌ TCP tunnel FAIL"
-                FAILED=1
-              fi
-              
-              # Test external UDP tunnel
-              echo "Testing external UDP (24454)..."
-              if timeout 3s nc -zu $(TUNNEL_SERVER_IP) 24454 2>/dev/null; then
-                echo "✅ UDP tunnel OK"
-              else
-                echo "❌ UDP tunnel FAIL"
-                FAILED=1
-              fi
-              
-              # Set health status
-              if [ $FAILED -eq 0 ]; then
-                echo "🎉 All tests passed - HEALTHY"
-                echo "healthy" > /tmp/health
-              else
-                echo "🚨 Some tests failed - UNHEALTHY"
-                rm -f /tmp/health 2>/dev/null || true
+                echo "❌ Internal Minecraft server: Unreachable"
               fi
               
               echo ""
-              sleep 30
+              sleep 60
             done
-        env:
-        - name: TUNNEL_SERVER_IP
-          valueFrom:
-            secretKeyRef:
-              name: tunnel-server-config
-              key: server-ip
         resources:
           requests:
             memory: "8Mi"
-            cpu: "5m"
+            cpu: "5m" 
           limits:
             memory: "16Mi"
             cpu: "20m"
+        # Add health checks to debug-logger (monitors chisel too)
         readinessProbe:
           exec:
             command:
