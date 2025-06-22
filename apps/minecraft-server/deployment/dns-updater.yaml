@@ -1,0 +1,146 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minecraft-dns-updater
+  namespace: minecraft
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minecraft-dns-updater
+  template:
+    metadata:
+      labels:
+        app: minecraft-dns-updater
+    spec:
+      serviceAccountName: minecraft-dns-updater
+      containers:
+      - name: dns-updater
+        image: alpine/k8s:1.30.13
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - |
+            echo "🌐 DNS Updater for Dynamic Ports (CI/CD Ready)"
+            echo "Domain: $MINECRAFT_DOMAIN"
+            echo "SRV Record: $SRV_RECORD_NAME.$BASE_DOMAIN"
+            echo "Only updates DNS when port changes"
+            
+            LAST_PORT=""
+            
+            while true; do
+              # Get current port from chisel logs
+              CURRENT_PORT=$(kubectl logs -n minecraft -l app=minecraft-tunnel -c tunnel --tail=10 | \
+                            grep -o "proxy#R:[0-9]*" | tail -1 | cut -d: -f2)
+              
+              if [ -n "$CURRENT_PORT" ]; then
+                # Only update if port actually changed
+                if [ "$CURRENT_PORT" != "$LAST_PORT" ]; then
+                  echo "🔄 Port changed: $LAST_PORT → $CURRENT_PORT"
+                  echo "Updating DNS to port $CURRENT_PORT"
+                  
+                  # Update SRV record using configmap values
+                  curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/dns_records/$SRV_RECORD_ID" \
+                    -H "Authorization: Bearer $CF_API_TOKEN" \
+                    -H "Content-Type: application/json" \
+                    -d "{\"type\":\"SRV\",\"name\":\"$SRV_RECORD_NAME\",\"data\":{\"priority\":$SRV_PRIORITY,\"weight\":$SRV_WEIGHT,\"port\":$CURRENT_PORT,\"target\":\"$MINECRAFT_DOMAIN\"},\"ttl\":$DNS_TTL}"
+                  
+                  echo "✅ DNS updated to port $CURRENT_PORT"
+                  LAST_PORT="$CURRENT_PORT"
+                else
+                  echo "✅ Port unchanged ($CURRENT_PORT) - no DNS update needed"
+                fi
+              else
+                echo "⚠️  No port found in chisel logs yet"
+              fi
+              
+              sleep 30
+            done
+        env:
+        # Cloudflare API secrets
+        - name: CF_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: cloudflare-dns-secret
+              key: api-token
+        - name: CF_ZONE_ID
+          valueFrom:
+            secretKeyRef:
+              name: cloudflare-dns-secret
+              key: zone-id
+        - name: SRV_RECORD_ID
+          valueFrom:
+            secretKeyRef:
+              name: cloudflare-dns-secret
+              key: srv-record-id
+        # DNS Configuration from ConfigMap
+        - name: MINECRAFT_DOMAIN
+          valueFrom:
+            configMapKeyRef:
+              name: minecraft-dns-config
+              key: MINECRAFT_DOMAIN
+        - name: BASE_DOMAIN
+          valueFrom:
+            configMapKeyRef:
+              name: minecraft-dns-config
+              key: BASE_DOMAIN
+        - name: SRV_RECORD_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: minecraft-dns-config
+              key: SRV_RECORD_NAME
+        - name: DNS_TTL
+          valueFrom:
+            configMapKeyRef:
+              name: minecraft-dns-config
+              key: DNS_TTL
+        - name: SRV_PRIORITY
+          valueFrom:
+            configMapKeyRef:
+              name: minecraft-dns-config
+              key: SRV_PRIORITY
+        - name: SRV_WEIGHT
+          valueFrom:
+            configMapKeyRef:
+              name: minecraft-dns-config
+              key: SRV_WEIGHT
+        resources:
+          requests:
+            memory: "16Mi"
+            cpu: "50m"
+          limits:
+            memory: "32Mi"
+            cpu: "100m"
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: minecraft-dns-updater
+  namespace: minecraft
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: minecraft
+  name: minecraft-dns-updater
+rules:
+- apiGroups: [""]
+  resources: ["pods", "pods/log"]
+  verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: minecraft-dns-updater
+  namespace: minecraft
+subjects:
+- kind: ServiceAccount
+  name: minecraft-dns-updater
+  namespace: minecraft
+roleRef:
+  kind: Role
+  name: minecraft-dns-updater
+  apiGroup: rbac.authorization.k8s.io
