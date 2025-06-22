@@ -14,3 +14,7 @@ spec:
     targetPort: 25565
     protocol: TCP
     name: minecraft
+  - port: 24454
+    targetPort: 24454
+    protocol: UDP
+    name: voice-chat
