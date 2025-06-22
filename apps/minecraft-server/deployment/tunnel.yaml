@@ -1,0 +1,137 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minecraft-tunnel
+  namespace: minecraft
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: minecraft-tunnel
+  template:
+    metadata:
+      labels:
+        app: minecraft-tunnel
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+      - name: tunnel
+        image: jpillora/chisel:latest
+        args:
+          - "client"
+          - "--auth"
+          - "$(TUNNEL_AUTH)"
+          - "http://$(TUNNEL_SERVER_IP):8080"
+          # Production server
+          - "R:25565:minecraft-server.minecraft.svc.cluster.local:25565/tcp"
+          - "R:24454:minecraft-server.minecraft.svc.cluster.local:24454/udp"
+          # Dev server
+          - "R:25566:minecraft-dev.minecraft.svc.cluster.local:25565/tcp" 
+          - "R:24455:minecraft-dev.minecraft.svc.cluster.local:24454/udp"
+        env:
+        - name: TUNNEL_SERVER_IP
+          valueFrom:
+            secretKeyRef:
+              name: tunnel-server-config
+              key: server-ip
+        - name: TUNNEL_AUTH
+          valueFrom:
+            secretKeyRef:
+              name: tunnel-server-config
+              key: auth
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "50m"
+          limits:
+            memory: "64Mi"
+            cpu: "100m"
+      # Health monitor to check if the tunnel is working
+      - name: health-monitor
+        image: busybox:latest
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - |
+            echo "🔍 Starting Chisel Tunnel Health Monitor"
+            echo "Server: $(TUNNEL_SERVER_IP)"
+            echo "Checking every 30 seconds..."
+            echo ""
+            
+            while true; do
+              echo "🔍 Health Check - $(date)"
+              FAILED=0
+              
+              # Test internal Minecraft server
+              echo "Testing internal server..."
+              if nc -z minecraft-server.minecraft.svc.cluster.local 25565 2>/dev/null; then
+                echo "✅ Internal server OK"
+              else
+                echo "❌ Internal server FAIL"
+                FAILED=1
+              fi
+              
+              # Test external TCP tunnel
+              echo "Testing external TCP (25565)..."
+              if timeout 5s nc -z $(TUNNEL_SERVER_IP) 25565 2>/dev/null; then
+                echo "✅ TCP tunnel OK"
+              else
+                echo "❌ TCP tunnel FAIL"
+                FAILED=1
+              fi
+              
+              # Test external UDP tunnel
+              echo "Testing external UDP (24454)..."
+              if timeout 3s nc -zu $(TUNNEL_SERVER_IP) 24454 2>/dev/null; then
+                echo "✅ UDP tunnel OK"
+              else
+                echo "❌ UDP tunnel FAIL"
+                FAILED=1
+              fi
+              
+              # Set health status
+              if [ $FAILED -eq 0 ]; then
+                echo "🎉 All tests passed - HEALTHY"
+                echo "healthy" > /tmp/health
+              else
+                echo "🚨 Some tests failed - UNHEALTHY"
+                rm -f /tmp/health 2>/dev/null || true
+              fi
+              
+              echo ""
+              sleep 30
+            done
+        env:
+        - name: TUNNEL_SERVER_IP
+          valueFrom:
+            secretKeyRef:
+              name: tunnel-server-config
+              key: server-ip
+        resources:
+          requests:
+            memory: "8Mi"
+            cpu: "5m"
+          limits:
+            memory: "16Mi"
+            cpu: "20m"
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "test -f /tmp/health"
+          initialDelaySeconds: 15
+          periodSeconds: 30
+          failureThreshold: 3
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "test -f /tmp/health"
+          initialDelaySeconds: 30
+          periodSeconds: 60
+          failureThreshold: 3
+      restartPolicy: Always
