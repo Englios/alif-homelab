@@ -21,6 +21,10 @@ spec:
         ports:
         - containerPort: 25565
           name: minecraft
+          protocol: TCP
+        - containerPort: 24454
+          name: voice-chat
+          protocol: UDP
         env:
         - name: SERVER_NAME
           value: "MAAF Server"
@@ -38,6 +42,8 @@ spec:
         - name: MEMORY
           value: "6G"
         - name: FORCE_REINSTALL
+          value: "true"
+        - name: REMOVE_OLD_FORGE_INSTALLER
           value: "true"
         - name: MAX_PLAYERS
           value: "20"
@@ -77,6 +83,12 @@ spec:
           value: "6"
         - name: ENTITY_BROADCAST_RANGE_PERCENTAGE
           value: "80"
+        - name: CURSEFORGE_FILES
+          value: "416089"
+        - name: REMOVE_OLD_MODS
+          value: "true"
+        - name: MOTD
+          value: "§6§l ALif MC Server §r§8| §a§lNEW: Voice Chat! §r§8| §7Press V in-game"
         resources:
           requests:
             memory: "4Gi"
@@ -94,9 +106,9 @@ spec:
             - status
             - --host
             - localhost
-          initialDelaySeconds: 30
-          periodSeconds: 5
-          failureThreshold: 20
+          initialDelaySeconds: 600  # Wait 10 minutes before first check
+          periodSeconds: 30         # Check every 30 seconds
+          failureThreshold: 40      # Allow 40 failures = 20 more minutes
         livenessProbe:
           exec:
             command:
@@ -104,8 +116,9 @@ spec:
             - status
             - --host
             - localhost
-          initialDelaySeconds: 120
-          periodSeconds: 60
+          initialDelaySeconds: 900  # Wait 15 minutes before first check
+          periodSeconds: 120        # Check every 2 minutes  
+          failureThreshold: 10      # Allow 10 failures = 20 more minutes
       volumes:
       - name: minecraft-data
         persistentVolumeClaim:
