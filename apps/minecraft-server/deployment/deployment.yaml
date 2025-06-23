@@ -40,7 +40,7 @@ spec:
               name: curseforge-api
               key: api-key
         - name: MEMORY
-          value: "6G"
+          value: "7G"
         - name: FORCE_REINSTALL
           value: "true"
         - name: REMOVE_OLD_FORGE_INSTALLER
@@ -72,17 +72,33 @@ spec:
         - name: SPAWN_NPCS
           value: "true"
         - name: VIEW_DISTANCE
-          value: "7"
+          value: "5"
         - name: FORCE_GAMEMODE
           value: "true"
         - name: PLAYER_IDLE_TIMEOUT
           value: "0"
         - name: JVM_OPTS
-          value: "-XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:MaxGCPauseMillis=50 -XX:+DisableExplicitGC -XX:TargetSurvivorRatio=90 -XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=16m -XX:G1ReservePercent=15 -XX:G1MixedGCCountTarget=4 -XX:G1MixedGCLiveThresholdPercent=90"
+          value: "-XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:MaxGCPauseMillis=50 -XX:+DisableExplicitGC -XX:TargetSurvivorRatio=90 -XX:G1NewSizePercent=50 -XX:G1MaxNewSizePercent=80 -XX:G1HeapRegionSize=16m -XX:G1ReservePercent=20 -XX:G1MixedGCCountTarget=4 -XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90 -XX:G1RSetUpdatingPauseTimePercent=5 -XX:SurvivorRatio=32 -XX:+PerfDisableSharedMem -XX:MaxTenuringThreshold=1"
         - name: SIMULATION_DISTANCE
-          value: "6"
+          value: "4"
         - name: ENTITY_BROADCAST_RANGE_PERCENTAGE
-          value: "80"
+          value: "60"
+        # Performance optimizations for combat
+        - name: MAX_TICK_TIME
+          value: "60000"
+        - name: NETWORK_COMPRESSION_THRESHOLD
+          value: "256"
+        - name: SPAWN_PROTECTION
+          value: "0"
+        # Better performance settings that don't break gameplay
+        - name: ENTITY_ACTIVATION_RANGE_ANIMALS
+          value: "16"
+        - name: ENTITY_ACTIVATION_RANGE_MONSTERS  
+          value: "24"
+        - name: ENTITY_ACTIVATION_RANGE_MISC
+          value: "8"
+        - name: MOB_SPAWN_RANGE
+          value: "6"
         - name: CURSEFORGE_FILES
           value: "416089"
         - name: REMOVE_OLD_MODS
@@ -99,6 +115,9 @@ spec:
         volumeMounts:
         - name: minecraft-data
           mountPath: /data
+        - name: voicechat-config
+          mountPath: /data/config/voicechat/voicechat-server.properties
+          subPath: voicechat-server.properties
         readinessProbe:
           exec:
             command:
@@ -106,7 +125,7 @@ spec:
             - status
             - --host
             - localhost
-          initialDelaySeconds: 600  # Wait 10 minutes before first check
+          initialDelaySeconds: 420  # Wait 7 minutes before first check
           periodSeconds: 30         # Check every 30 seconds
           failureThreshold: 40      # Allow 40 failures = 20 more minutes
         livenessProbe:
@@ -123,4 +142,7 @@ spec:
       - name: minecraft-data
         persistentVolumeClaim:
           claimName: minecraft-data
+      - name: voicechat-config
+        configMap:
+          name: voicechat-config
               
