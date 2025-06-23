@@ -25,12 +25,9 @@ spec:
           - "--auth"
           - "$(TUNNEL_AUTH)"
           - "http://$(TUNNEL_SERVER_IP):8080"
-          # Use 0 = server picks random port for security
-          - "R:0:minecraft-server.minecraft.svc.cluster.local:25565/tcp"
-          - "R:0:minecraft-server.minecraft.svc.cluster.local:24454/udp"
-          # Dev server (if needed)
-          # - "R:0:minecraft-dev.minecraft.svc.cluster.local:25565/tcp" 
-          # - "R:0:minecraft-dev.minecraft.svc.cluster.local:24454/udp"
+          # Simple configurable ports
+          - "R:$(MINECRAFT_TCP_PORT):minecraft-server.minecraft.svc.cluster.local:25565"
+          - "R:$(MINECRAFT_UDP_PORT):minecraft-server.minecraft.svc.cluster.local:24454"
         env:
         - name: TUNNEL_SERVER_IP
           valueFrom:
@@ -42,6 +39,16 @@ spec:
             secretKeyRef:
               name: tunnel-server-config
               key: auth
+        - name: MINECRAFT_TCP_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: minecraft-dns-config
+              key: MINECRAFT_TCP_PORT
+        - name: MINECRAFT_UDP_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: minecraft-dns-config
+              key: MINECRAFT_UDP_PORT
         resources:
           requests:
             memory: "32Mi"
