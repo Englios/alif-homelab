@@ -29,9 +29,15 @@ spec:
             LAST_PORT=""
             
             while true; do
-              # Get current port from chisel logs
+              # Get current port from chisel logs (fixed port setup)
               CURRENT_PORT=$(kubectl logs -n minecraft -l app=minecraft-tunnel -c tunnel --tail=10 | \
                             grep -o "proxy#R:[0-9]*" | tail -1 | cut -d: -f2)
+              
+              # For fixed ports, we can also just use the configured port
+              if [ -z "$CURRENT_PORT" ]; then
+                CURRENT_PORT="$MINECRAFT_TCP_PORT"  # Use port from ConfigMap
+                echo "Using configured fixed port: $CURRENT_PORT"
+              fi
               
               if [ -n "$CURRENT_PORT" ]; then
                 # Only update if port actually changed
@@ -104,6 +110,16 @@ spec:
             configMapKeyRef:
               name: minecraft-dns-config
               key: SRV_WEIGHT
+        - name: MINECRAFT_TCP_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: minecraft-dns-config
+              key: MINECRAFT_TCP_PORT
+        - name: MINECRAFT_UDP_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: minecraft-dns-config
+              key: MINECRAFT_UDP_PORT
         resources:
           requests:
             memory: "16Mi"
