@@ -13,3 +13,7 @@ data:
   DNS_TTL: "300"
   SRV_PRIORITY: "0"
   SRV_WEIGHT: "5"
+  # Simple port pool for manual rotation
+  MINECRAFT_TCP_PORT: "35000"  # Can easily change these
+  MINECRAFT_UDP_PORT: "35001"
+  # Alternative ports: 35010/35011, 35020/35021, 35030/35031
