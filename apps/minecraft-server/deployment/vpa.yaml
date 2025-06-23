@@ -1,0 +1,71 @@
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: minecraft-server-vpa
+  namespace: minecraft
+  labels:
+    app: minecraft-server
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: minecraft-server
+  updatePolicy:
+    updateMode: "Auto"  # Can be "Off", "Initial", or "Auto"
+  resourcePolicy:
+    containerPolicies:
+    - containerName: minecraft
+      # Memory scaling recommendations
+      minAllowed:
+        memory: "4Gi"      # Minimum for modded server
+        cpu: "1000m"       # 1 CPU core minimum
+      maxAllowed:
+        memory: "10Gi"     # Leave 2GB for system (16GB total)
+        cpu: "6000m"       # 6 CPU cores maximum
+      # Scaling behavior
+      controlledResources: ["cpu", "memory"]
+      controlledValues: RequestsAndLimits
+
+---
+# VPA Monitoring ServiceMonitor (if using Prometheus)
+apiVersion: v1
+kind: Service
+metadata:
+  name: minecraft-server-metrics
+  namespace: minecraft
+  labels:
+    app: minecraft-server
+    monitor: vpa
+spec:
+  ports:
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+  selector:
+    app: minecraft-server
+  type: ClusterIP
+
+---
+# ConfigMap for VPA tuning
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vpa-tuning-config
+  namespace: minecraft
+data:
+  # VPA tuning parameters
+  memory-threshold: "85"        # Scale up when memory usage > 85%
+  cpu-threshold: "80"           # Scale up when CPU usage > 80%
+  scale-down-delay: "300s"      # Wait 5 minutes before scaling down
+  scale-up-delay: "60s"         # Scale up after 1 minute
+  
+  # Minecraft-specific hints for VPA
+  usage-patterns: |
+    # Peak hours: 7-11 PM (higher resource needs)
+    # Low hours: 2-8 AM (minimal resources)
+    # Combat spikes: Sudden CPU increases during raids/PvP
+    # Memory: Gradual increase with more loaded chunks
+    
+    # Note: VPA automatically learns usage patterns and scales accordingly
+    # The above ConfigMap values are for reference/monitoring only
+    # VPA will recommend resources based on actual usage metrics 
