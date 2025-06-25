@@ -58,8 +58,8 @@ data:
     enable_groups=true
     # The hostname that clients should use to connect to the voice chat
     # This may also include a port, e.g. 'example.com:24454'
-    # CRITICAL: This must be set to your external domain + voice chat port
-    voice_host=play-mc.alifaiman.cloud:35001
+    # CRITICAL: With tunnel setup, we need to specify the external address
+    voice_host=
     # If players are allowed to record the voice chat audio
     allow_recording=true
     # If spectators are allowed to talk to other players
