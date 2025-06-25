@@ -4,6 +4,7 @@ metadata:
   name: minecraft-dns-updater
   namespace: minecraft
 spec:
+  revisionHistoryLimit: 3  # Keep only 3 old ReplicaSets for rollback
   replicas: 1
   selector:
     matchLabels:
