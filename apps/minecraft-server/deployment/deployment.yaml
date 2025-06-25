@@ -6,6 +6,9 @@ metadata:
   labels:
     app: minecraft-server
 spec:
+  revisionHistoryLimit: 3  # Keep only 3 old ReplicaSets for rollback
+  strategy:
+    type: Recreate  # Terminate old pod before creating new one (avoids memory issues)
   replicas: 1
   selector:
     matchLabels:
@@ -125,9 +128,10 @@ spec:
             - status
             - --host
             - localhost
-          initialDelaySeconds: 420  # Wait 7 minutes before first check
-          periodSeconds: 30         # Check every 30 seconds
-          failureThreshold: 40      # Allow 40 failures = 20 more minutes
+          initialDelaySeconds: 90   # Start checking after 1.5 minutes
+          periodSeconds: 10         # Check every 10 seconds
+          failureThreshold: 30      # Allow 30 failures = 5 more minutes
+          successThreshold: 2       # Need 2 consecutive successes (more stable)
         livenessProbe:
           exec:
             command:
@@ -135,9 +139,10 @@ spec:
             - status
             - --host
             - localhost
-          initialDelaySeconds: 900  # Wait 15 minutes before first check
-          periodSeconds: 120        # Check every 2 minutes  
-          failureThreshold: 10      # Allow 10 failures = 20 more minutes
+          initialDelaySeconds: 300  # Wait 5 minutes before first check
+          periodSeconds: 60         # Check every 1 minute
+          failureThreshold: 5       # Allow 5 failures = 5 more minutes
+          timeoutSeconds: 10        # Give command 10 seconds to respond
       volumes:
       - name: minecraft-data
         persistentVolumeClaim:
@@ -145,4 +150,5 @@ spec:
       - name: voicechat-config
         configMap:
           name: voicechat-config
+  revisionHistoryLimit: 3  # Keep only 3 old ReplicaSets
               
