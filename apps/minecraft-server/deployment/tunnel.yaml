@@ -4,6 +4,7 @@ metadata:
   name: minecraft-tunnel
   namespace: minecraft
 spec:
+  revisionHistoryLimit: 3  # Keep only 3 old ReplicaSets for rollback
   replicas: 1
   strategy:
     type: Recreate
@@ -17,77 +18,92 @@ spec:
     spec:
       terminationGracePeriodSeconds: 60
       containers:
-      - name: tunnel
-        image: jpillora/chisel:latest
-        args:
-          - "client"
-          - "-v"
-          - "--auth"
-          - "$(TUNNEL_AUTH)"
-          - "http://$(TUNNEL_SERVER_IP):8080"
-          # Simple configurable ports
-          - "R:$(MINECRAFT_TCP_PORT):minecraft-server.minecraft.svc.cluster.local:25565"
-          - "R:$(MINECRAFT_UDP_PORT):minecraft-server.minecraft.svc.cluster.local:24454"
+      - name: rtun-client
+        image: snsinfu/rtun
         env:
-        - name: TUNNEL_SERVER_IP
+        - name: RTUN_GATEWAY
           valueFrom:
             secretKeyRef:
-              name: tunnel-server-config
-              key: server-ip
-        - name: TUNNEL_AUTH
+              name: rtun-config
+              key: gateway-url
+        - name: RTUN_KEY
           valueFrom:
             secretKeyRef:
               name: tunnel-server-config
               key: auth
-        - name: MINECRAFT_TCP_PORT
-          valueFrom:
-            configMapKeyRef:
-              name: minecraft-dns-config
-              key: MINECRAFT_TCP_PORT
-        - name: MINECRAFT_UDP_PORT
-          valueFrom:
-            configMapKeyRef:
-              name: minecraft-dns-config
-              key: MINECRAFT_UDP_PORT
+        - name: RTUN_FORWARD
+          value: "35000/tcp:minecraft-server.minecraft.svc.cluster.local:25565,35001/udp:minecraft-server.minecraft.svc.cluster.local:24454"
         resources:
           requests:
+            memory: "16Mi"
+            cpu: "25m"
+          limits:
             memory: "32Mi"
             cpu: "50m"
-          limits:
-            memory: "64Mi"
-            cpu: "100m"
-        # Remove health probes - chisel image is too minimal
-      # Keep debug-logger (busybox has shell)
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "pgrep rtun > /dev/null"
+          initialDelaySeconds: 30
+          periodSeconds: 60
+
+      # Health monitoring container
       - name: debug-logger
         image: busybox:latest
         command: ["/bin/sh"]
         args:
           - -c
           - |
-            echo "📊 Debug Logger Started"
+            echo "📊 Debug Logger Started - Monitoring rtun tunnel"
             echo "Logging tunnel info every 60 seconds..."
             
             while true; do
               echo "🔍 $(date): Tunnel Status Check"
               
-              # Log chisel process status
-              if pgrep -f "chisel client" > /dev/null; then
-                echo "✅ Chisel process: Running"
-                echo "healthy" > /tmp/health  # Create health file
+              # Log rtun process status
+              rtun_running=false
+              tcp_reachable=false
+              udp_reachable=false
+              
+              if pgrep -f "rtun" > /dev/null; then
+                echo "✅ rtun client process: Running"
+                rtun_running=true
               else
-                echo "❌ Chisel process: Not found"
-                rm -f /tmp/health 2>/dev/null || true  # Remove health file
+                echo "❌ rtun client process: Not found"
               fi
               
-              # Log network connections (to see active ports)
-              echo "📡 Active connections:"
-              netstat -tln 2>/dev/null | grep LISTEN | grep -v ':22' | head -5 || echo "   No listening ports found"
-              
-              # Log internal server connectivity
+              # Test TCP connectivity to Minecraft server
               if nc -z minecraft-server.minecraft.svc.cluster.local 25565 2>/dev/null; then
-                echo "✅ Internal Minecraft server: Reachable"
+                echo "✅ Internal Minecraft server (TCP 25565): Reachable"
+                tcp_reachable=true
               else
-                echo "❌ Internal Minecraft server: Unreachable"
+                echo "❌ Internal Minecraft server (TCP 25565): Unreachable"
+              fi
+              
+              # Test UDP connectivity to Voice Chat server
+              if timeout 3 nc -u minecraft-server.minecraft.svc.cluster.local 24454 < /dev/null 2>/dev/null; then
+                echo "✅ Internal voice chat server (UDP 24454): Reachable"
+                udp_reachable=true
+              else
+                # Try a different UDP test method
+                if echo "test" | timeout 2 nc -u -w1 minecraft-server.minecraft.svc.cluster.local 24454 2>/dev/null; then
+                  echo "✅ Internal voice chat server (UDP 24454): Reachable"
+                  udp_reachable=true
+                else
+                  echo "⚠️  Internal voice chat server (UDP 24454): Test inconclusive"
+                fi
+              fi
+              
+              # Overall health status - require rtun running and TCP connectivity
+              # UDP is nice-to-have but not required for health
+              if $rtun_running && $tcp_reachable; then
+                echo "🟢 Overall tunnel health: HEALTHY"
+                echo "healthy" > /tmp/health
+              else
+                echo "🔴 Overall tunnel health: UNHEALTHY"
+                rm -f /tmp/health 2>/dev/null || true
               fi
               
               echo ""
@@ -100,7 +116,6 @@ spec:
           limits:
             memory: "16Mi"
             cpu: "20m"
-        # Add health checks to debug-logger (monitors chisel too)
         readinessProbe:
           exec:
             command:
@@ -119,4 +134,5 @@ spec:
           initialDelaySeconds: 30
           periodSeconds: 60
           failureThreshold: 3
+
       restartPolicy: Always
