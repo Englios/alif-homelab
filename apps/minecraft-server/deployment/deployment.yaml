@@ -6,6 +6,8 @@ metadata:
   labels:
     app: minecraft-server
 spec:
+  strategy:
+    type: Recreate  # Terminate old pod before creating new one (avoids memory issues)
   replicas: 1
   selector:
     matchLabels:
@@ -21,6 +23,10 @@ spec:
         ports:
         - containerPort: 25565
           name: minecraft
+          protocol: TCP
+        - containerPort: 24454
+          name: voice-chat
+          protocol: UDP
         env:
         - name: SERVER_NAME
           value: "MAAF Server"
@@ -36,8 +42,10 @@ spec:
               name: curseforge-api
               key: api-key
         - name: MEMORY
-          value: "6G"
+          value: "7G"
         - name: FORCE_REINSTALL
+          value: "true"
+        - name: REMOVE_OLD_FORGE_INSTALLER
           value: "true"
         - name: MAX_PLAYERS
           value: "20"
@@ -66,17 +74,39 @@ spec:
         - name: SPAWN_NPCS
           value: "true"
         - name: VIEW_DISTANCE
-          value: "7"
+          value: "5"
         - name: FORCE_GAMEMODE
           value: "true"
         - name: PLAYER_IDLE_TIMEOUT
           value: "0"
         - name: JVM_OPTS
-          value: "-XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:MaxGCPauseMillis=50 -XX:+DisableExplicitGC -XX:TargetSurvivorRatio=90 -XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=16m -XX:G1ReservePercent=15 -XX:G1MixedGCCountTarget=4 -XX:G1MixedGCLiveThresholdPercent=90"
+          value: "-XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:MaxGCPauseMillis=50 -XX:+DisableExplicitGC -XX:TargetSurvivorRatio=90 -XX:G1NewSizePercent=50 -XX:G1MaxNewSizePercent=80 -XX:G1HeapRegionSize=16m -XX:G1ReservePercent=20 -XX:G1MixedGCCountTarget=4 -XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90 -XX:G1RSetUpdatingPauseTimePercent=5 -XX:SurvivorRatio=32 -XX:+PerfDisableSharedMem -XX:MaxTenuringThreshold=1"
         - name: SIMULATION_DISTANCE
-          value: "6"
+          value: "4"
         - name: ENTITY_BROADCAST_RANGE_PERCENTAGE
-          value: "80"
+          value: "60"
+        # Performance optimizations for combat
+        - name: MAX_TICK_TIME
+          value: "60000"
+        - name: NETWORK_COMPRESSION_THRESHOLD
+          value: "256"
+        - name: SPAWN_PROTECTION
+          value: "0"
+        # Better performance settings that don't break gameplay
+        - name: ENTITY_ACTIVATION_RANGE_ANIMALS
+          value: "16"
+        - name: ENTITY_ACTIVATION_RANGE_MONSTERS  
+          value: "24"
+        - name: ENTITY_ACTIVATION_RANGE_MISC
+          value: "8"
+        - name: MOB_SPAWN_RANGE
+          value: "6"
+        - name: CURSEFORGE_FILES
+          value: "416089"
+        - name: REMOVE_OLD_MODS
+          value: "true"
+        - name: MOTD
+          value: "§6§l ALif MC Server §r§8| §a§lNEW: Voice Chat! §r§8| §7Press V in-game"
         resources:
           requests:
             memory: "4Gi"
@@ -87,6 +117,9 @@ spec:
         volumeMounts:
         - name: minecraft-data
           mountPath: /data
+        - name: voicechat-config
+          mountPath: /data/config/voicechat/voicechat-server.properties
+          subPath: voicechat-server.properties
         readinessProbe:
           exec:
             command:
@@ -94,9 +127,10 @@ spec:
             - status
             - --host
             - localhost
-          initialDelaySeconds: 30
-          periodSeconds: 5
-          failureThreshold: 20
+          initialDelaySeconds: 90   # Start checking after 1.5 minutes
+          periodSeconds: 10         # Check every 10 seconds
+          failureThreshold: 30      # Allow 30 failures = 5 more minutes
+          successThreshold: 2       # Need 2 consecutive successes (more stable)
         livenessProbe:
           exec:
             command:
@@ -104,10 +138,16 @@ spec:
             - status
             - --host
             - localhost
-          initialDelaySeconds: 120
-          periodSeconds: 60
+          initialDelaySeconds: 300  # Wait 5 minutes before first check
+          periodSeconds: 60         # Check every 1 minute
+          failureThreshold: 5       # Allow 5 failures = 5 more minutes
+          timeoutSeconds: 10        # Give command 10 seconds to respond
       volumes:
       - name: minecraft-data
         persistentVolumeClaim:
           claimName: minecraft-data
+      - name: voicechat-config
+        configMap:
+          name: voicechat-config
+  revisionHistoryLimit: 3  # Keep only 3 old ReplicaSets
               
