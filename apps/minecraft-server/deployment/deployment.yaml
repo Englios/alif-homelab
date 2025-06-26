@@ -6,7 +6,6 @@ metadata:
   labels:
     app: minecraft-server
 spec:
-  revisionHistoryLimit: 3  # Keep only 3 old ReplicaSets for rollback
   strategy:
     type: Recreate  # Terminate old pod before creating new one (avoids memory issues)
   replicas: 1
