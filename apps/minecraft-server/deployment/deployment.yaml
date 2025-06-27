@@ -43,7 +43,7 @@ spec:
               name: curseforge-api
               key: api-key
         - name: MEMORY
-          value: "7G"
+          value: "8G"
         - name: FORCE_REINSTALL
           value: "true"
         - name: REMOVE_OLD_FORGE_INSTALLER
@@ -110,11 +110,11 @@ spec:
           value: "§6§l ALif MC Server §r§8| §a§lNEW: Voice Chat! §r§8| §7Press V in-game"
         resources:
           requests:
-            memory: "4Gi"
-            cpu: "2"
+            memory: "10Gi" # Realistic baseline - close to actual usage
+            cpu: "500m"   # Reduced from 2 cores - server typically uses <500m
           limits:
-            memory: "8Gi"
-            cpu: "4"
+            memory: "12Gi" # Reasonable ceiling, not excessive like 18GB
+            cpu: "2"       # Reduced from 4 cores - more realistic
         volumeMounts:
         - name: minecraft-data
           mountPath: /data
