@@ -11,7 +11,7 @@ spec:
     kind: Deployment
     name: minecraft-server
   updatePolicy:
-    updateMode: "Initial" # Changed from "Auto" - only apply on pod creation, no restarts
+    updateMode: "Off" # Changed to Off to disable VPA and allow manual resource management
   resourcePolicy:
     containerPolicies:
     - containerName: minecraft
