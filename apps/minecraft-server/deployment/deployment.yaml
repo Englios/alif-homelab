@@ -102,7 +102,7 @@ spec:
         - name: MOB_SPAWN_RANGE
           value: "6"
         - name: CURSEFORGE_FILES
-          value: "256717,429235,790626,416089,361579" # clumps,ferritecore,modernfix,spark,simple-voice-chat
+          value: "256717,429235,790626,416089,361579,453763,422301,450824,933354,1023178,639842,453763,890127,889079,913445,348521,968432,658587,618298" 
         - name: MOTD
           value: "§6§l ALif MC Server §r§8| §a§lNEW: Voice Chat! §r§8| §7Press V in-game"
         resources:
