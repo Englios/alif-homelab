@@ -43,7 +43,7 @@ spec:
               name: curseforge-api
               key: api-key
         - name: MEMORY
-          value: "8G"
+          value: "6G"  # Reduced from 8G - better GC performance
         - name: FORCE_REINSTALL
           value: "true"
         - name: REMOVE_OLD_FORGE_INSTALLER
@@ -110,11 +110,11 @@ spec:
           value: "§6§l ALif MC Server §r§8| §a§lNEW: Voice Chat! §r§8| §7Press V in-game"
         resources:
           requests:
-            memory: "10Gi" # Realistic baseline - close to actual usage
-            cpu: "500m"   # Reduced from 2 cores - server typically uses <500m
+            memory: "7Gi"  # 6GB Java heap + 1GB overhead
+            cpu: "300m"    # Conservative for small player count
           limits:
-            memory: "12Gi" # Reasonable ceiling, not excessive like 18GB
-            cpu: "2"       # Reduced from 4 cores - more realistic
+            memory: "9Gi"  # 6GB Java heap + 3GB max overhead
+            cpu: "1500m"   # Enough for peak times
         volumeMounts:
         - name: minecraft-data
           mountPath: /data
