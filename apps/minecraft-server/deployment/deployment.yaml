@@ -35,14 +35,14 @@ spec:
         - name: MODPACK_PLATFORM
           value: "AUTO_CURSEFORGE"
         - name: CF_SLUG
-          value: "better-mc-forge-bmc4"
+          value: "deceasedcraft"
         - name: CF_API_KEY
           valueFrom:
             secretKeyRef:
               name: curseforge-api
               key: api-key
         - name: MEMORY
-          value: "6G"  # Reduced from 8G - better GC performance
+          value: "6G" 
         - name: FORCE_REINSTALL
           value: "true"
         - name: REMOVE_OLD_FORGE_INSTALLER
@@ -64,7 +64,7 @@ spec:
         - name: MAX_BUILD_HEIGHT
           value: "256"
         - name: MAX_WORLD_SIZE
-          value: "29999984"  # Large world
+          value: "29999984"
         - name: PVP
           value: "true"
         - name: SPAWN_ANIMALS
@@ -101,10 +101,10 @@ spec:
           value: "8"
         - name: MOB_SPAWN_RANGE
           value: "6"
-        - name: CURSEFORGE_FILES
-          value: "256717,429235,790626,416089,361579,453763,422301,450824,933354,1023178,639842,453763,890127,889079,913445,348521,968432,658587,618298" 
+        - name: MODS_FILE
+          value: "/config/mod-list.txt"
         - name: MOTD
-          value: "§6§l ALif MC Server §r§8| §a§lNEW: Voice Chat! §r§8| §7Press V in-game"
+          value: "§6§l New Modpack §r§8| §a§lDECEASED CRAFT"
         resources:
           requests:
             memory: "7Gi"  # 6GB Java heap + 1GB overhead
@@ -115,9 +115,10 @@ spec:
         volumeMounts:
         - name: minecraft-data
           mountPath: /data
-        - name: voicechat-config
-          mountPath: /data/config/voicechat/voicechat-server.properties
-          subPath: voicechat-server.properties
+        
+        - name: mod-config
+          mountPath: /config/mod-list.txt
+          subPath: mod-list.txt
         readinessProbe:
           exec:
             command:
@@ -144,8 +145,9 @@ spec:
       - name: minecraft-data
         persistentVolumeClaim:
           claimName: minecraft-data
-      - name: voicechat-config
+      - name: mod-config
         configMap:
-          name: voicechat-config
+          name: mod-config
+      
   revisionHistoryLimit: 3  # Keep only 3 old ReplicaSets
               
