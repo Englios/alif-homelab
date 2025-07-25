@@ -1,10 +1,9 @@
 **/data
 
-# ignore anything starting with ignore
-**/ignore* 
-# Environment variables (contains sensitive info)
+**/ignore*
 .env
+# **/config
+**/gpu-feature-discovery
 
-# Kubernetes config files (may contain tokens)
 kubeconfig
 *.kubeconfig
