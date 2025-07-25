@@ -80,36 +80,36 @@ spec:
             secretKeyRef:
               name: cloudflare-dns-secret
               key: srv-record-id
-        # DNS Configuration from ConfigMap
+        # DNS Configuration from Secret
         - name: MINECRAFT_DOMAIN
           valueFrom:
-            configMapKeyRef:
-              name: minecraft-dns-config
+            secretKeyRef:
+              name: minecraft-dns-secret
               key: MINECRAFT_DOMAIN
         - name: BASE_DOMAIN
           valueFrom:
-            configMapKeyRef:
-              name: minecraft-dns-config
+            secretKeyRef:
+              name: minecraft-dns-secret
               key: BASE_DOMAIN
         - name: SRV_RECORD_NAME
           valueFrom:
-            configMapKeyRef:
-              name: minecraft-dns-config
+            secretKeyRef:
+              name: minecraft-dns-secret
               key: SRV_RECORD_NAME
         - name: DNS_TTL
           valueFrom:
-            configMapKeyRef:
-              name: minecraft-dns-config
+            secretKeyRef:
+              name: minecraft-dns-secret
               key: DNS_TTL
         - name: SRV_PRIORITY
           valueFrom:
-            configMapKeyRef:
-              name: minecraft-dns-config
+            secretKeyRef:
+              name: minecraft-dns-secret
               key: SRV_PRIORITY
         - name: SRV_WEIGHT
           valueFrom:
-            configMapKeyRef:
-              name: minecraft-dns-config
+            secretKeyRef:
+              name: minecraft-dns-secret
               key: SRV_WEIGHT
         - name: MINECRAFT_TCP_PORT
           valueFrom:

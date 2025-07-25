@@ -4,17 +4,7 @@ metadata:
   name: minecraft-dns-config
   namespace: minecraft
 data:
-  MINECRAFT_DOMAIN: "play-mc.alifaiman.cloud"
-  MINECRAFT_SUBDOMAIN: "play-mc"
-  BASE_DOMAIN: "alifaiman.cloud"
-  A_RECORD_NAME: "play-mc"
-  SRV_RECORD_NAME: "_minecraft._tcp.play-mc"
-  CUSTOM_SRV_NAME: "_minecraft.play-mc"
-  DNS_TTL: "300"
-  SRV_PRIORITY: "0"
-  SRV_WEIGHT: "5"
-  # Simple port pool for manual rotation
-  MINECRAFT_TCP_PORT: "35000"  # Can easily change these
+  MINECRAFT_TCP_PORT: "35000"
   MINECRAFT_UDP_PORT: "35001"
 ---
 apiVersion: v1
@@ -79,3 +69,4 @@ data:
     # If the mod should load native libraries on dedicated servers
     # This is mostly relevant for voice chat addons
     use_natives=true
+

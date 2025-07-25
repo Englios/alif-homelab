@@ -2,7 +2,9 @@
 
 **/ignore*
 .env
-# **/config
+*.secret
+*.ignore
+
 **/gpu-feature-discovery
 
 kubeconfig
