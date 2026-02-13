@@ -1,0 +1,22 @@
+# wol-pc configuration
+# Copy this to ~/.config/wol-pc.conf or specify with --config
+
+# Main PC network
+MAC="xx:xx:xx:xx:xx:xx"
+IP="192.168.x.x"
+NET_IF="enp6s0"
+
+# SSH configuration
+UNLOCK_KEY="$HOME/.ssh/mainpc-unlock"  # dropbear (port 2222, root@)
+LINUX_KEY="$HOME/.ssh/main-pc"         # openssh (port 22, user@)
+UNLOCK_PORT=2222
+SSH_PORT=22
+SSH_USER="username"
+
+# Bootloader
+BOOT_ENTRY="auto-windows"
+
+# Timeouts (seconds)
+WOL_TIMEOUT=60
+UNLOCK_TIMEOUT=120
+BOOT_TIMEOUT=120
