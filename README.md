@@ -1,42 +1,82 @@
-# 🏠 Homelab Kubernetes Setup
+# 🏠 Homelab Kubernetes
 
-A self-hosted Kubernetes environment for learning and running applications.
+A self-hosted Kubernetes environment for homelab computing, gaming, and learning DevOps.
 
-## 🖥️ Infrastructure
-- **Host**: Old gaming laptop (i7-7700HQ, 12GB RAM, GTX 1060)
-- **OS**: Debian 12
-- **Network**: Home network (IP configured in .env)
-- **K8s**: k3s (lightweight Kubernetes)
+---
 
-## 📋 Current Status
-- [x] SSH setup with key-based authentication
-- [x] CLI tools installed (kubectl, helm, k3sup)
-- [x] k3s cluster running (v1.32.5+k3s1)
-- [ ] Minecraft server deployment
+## What's Here
 
-## 🎯 Planned Applications
-- Minecraft server (modded, ~10 players, large world)
-- Personal website (future)
-- VS Code server (future)
-- Monitoring stack (future)
+| Component | Description |
+|-----------|-------------|
+| **k3s Cluster** | Lightweight Kubernetes on Debian |
+| **Minecraft Server** | Modded Java Edition with friends |
+| **Headless WOL** | Remote boot/maintain a gaming PC via homelab |
+| **VPN Access** | Tailscale for secure remote access |
 
-## 📁 Repository Structure
+---
+
+## Architecture
+
+```mermaid
+flowchart LR
+    subgraph Remote
+        Device[Steam Deck / Phone / Laptop]
+    end
+
+    subgraph Homelab
+        HomelabNode[Homelab Server]
+        K8s[k3s Cluster]
+    end
+
+    subgraph MainPC
+        Linux[Pop!_OS]
+        Windows[Windows]
+    end
+
+    Device -- Tailscale --> HomelabNode
+    HomelabNode -- WOL --> Linux
+    HomelabNode -- SSH --> Linux
+    Linux -- bootctl --> Windows
+```
+
+---
+
+## Quick Start
+
+```bash
+# Minecraft server
+kubectl apply -f apps/minecraft-server/deployment/
+
+# Headless WOL (see docs/guides/headless-wol-guide.md)
+wol-pc status
+```
+
+---
+
+## 📁 Structure
+
 ```
 homelab-k8s/
-├── apps/           # Application manifests
-├── infrastructure/ # Core infrastructure components  
-├── base/          # Base configurations
-├── overlays/      # Environment-specific configs
-└── docs/          # Documentation
+├── apps/              # Kubernetes manifests
+│   └── minecraft-server/
+├── scripts/           # Helper scripts (wol-pc, etc.)
+├── docs/
+│   ├── guides/       # How-to tutorials
+│   ├── howto/        # Technical reference
+│   └── plans/        # Internal runbooks
+└── infrastructure/   # Core configs
 ```
 
-## 🚀 Getting Started
+---
 
-1. **Configure environment variables:**
-   ```bash
-   cp env.example .env
-   # Edit .env with your actual values
-   ```
+## 📖 Documentation
 
-2. **Follow setup guide:**
-   See [setup documentation](./docs/setup.md) for detailed installation steps. 
+- **[Guides](./docs/guides/)** — Step-by-step tutorials
+- **[Headless WOL](./docs/guides/headless-wol-overview.md)** — Remote boot gaming PC
+- **[k3s Setup](./docs/guides/k3s-setup.md)** — Cluster configuration
+
+---
+
+## 🔧 Getting Started
+
+See [docs/guides/k3s-setup.md](./docs/guides/k3s-setup.md) for cluster setup.
