@@ -55,7 +55,7 @@ wol-pc status
 
 ## 📁 Structure
 
-```
+```md
 homelab-k8s/
 ├── apps/              # Kubernetes manifests
 │   └── minecraft-server/
