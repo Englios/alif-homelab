@@ -10,6 +10,7 @@
 # Usage:
 #   ./setup-kubectl.sh
 #   ./setup-kubectl.sh --context-name my-homelab
+#   SETUP_GPU=true ./setup-kubectl.sh  # Also setup GPU worker
 #
 
 set -e
@@ -20,6 +21,7 @@ TAILSCALE_HOSTNAME="${TAILSCALE_HOSTNAME:-debian}"
 CONTEXT_NAME="${1:-homelab-context}"
 CLUSTER_NAME="${CLUSTER_NAME:-homelab}"
 USER_NAME="${USER_NAME:-alif-homelab}"
+SETUP_GPU="${SETUP_GPU:-false}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -154,6 +156,27 @@ set_current_context() {
     fi
 }
 
+# Setup GPU on worker node
+setup_gpu() {
+    if [ "$SETUP_GPU" != "true" ]; then
+        return
+    fi
+    
+    info "Setting up GPU on worker node..."
+    
+    # Copy GPU setup script to worker
+    scp scripts/setup-gpu-worker.sh "${SSH_HOST}:~/setup-gpu-worker.sh"
+    
+    # Run GPU setup on worker (requires sudo)
+    ssh -t "${SSH_HOST}" "chmod +x ~/setup-gpu-worker.sh && sudo ~/setup-gpu-worker.sh"
+    
+    # Install device plugin
+    info "Installing NVIDIA device plugin..."
+    kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.14.5/nvidia-device-plugin.yml
+    
+    info "GPU setup complete!"
+}
+
 # Main
 main() {
     echo "======================================"
@@ -169,8 +192,19 @@ main() {
     test_connection
     set_current_context
     
+    if [ "$SETUP_GPU" = "true" ]; then
+        setup_gpu
+    fi
+    
     echo ""
     info "Setup complete! You can now use: kubectl --context=${CONTEXT_NAME} <command>"
+    
+    if [ "$SETUP_GPU" = "true" ]; then
+        echo ""
+        echo "GPU worker setup complete! Test with:"
+        echo "  kubectl apply -f misc/test-gpu-pod.yaml"
+        echo "  kubectl logs gpu-test"
+    fi
 }
 
 main "$@"
