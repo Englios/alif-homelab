@@ -9,3 +9,4 @@
 
 kubeconfig
 *.kubeconfig
+.jj/

@@ -1,0 +1,21 @@
+grafana:
+  nodeSelector:
+    kubernetes.io/hostname: debian
+
+prometheus:
+  prometheusSpec:
+    nodeSelector:
+      kubernetes.io/hostname: debian
+
+alertmanager:
+  alertmanagerSpec:
+    nodeSelector:
+      kubernetes.io/hostname: debian
+
+kube-state-metrics:
+  nodeSelector:
+    kubernetes.io/hostname: debian
+
+prometheusOperator:
+  nodeSelector:
+    kubernetes.io/hostname: debian

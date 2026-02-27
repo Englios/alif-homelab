@@ -1,122 +1,122 @@
-#Service Account
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  labels:
-    k8s-app: metrics-server
-  name: metrics-server
-  namespace: kube-system
----
-#Cluster Role
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  labels:
-    k8s-app: metrics-server
-  name: system:metrics-server
-rules:
-- apiGroups: [""]
-  resources: ["nodes/metrics"]
-  verbs: ["get"]
-- apiGroups: [""]
-  resources: ["pods", "nodes", "nodes/stats", "namespaces", "configmaps"]
-  verbs: ["get", "list", "watch"]
----
-#Cluster Role Binding
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  labels:
-    k8s-app: metrics-server
-  name: system:metrics-server
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: system:metrics-server
-subjects:
-- kind: ServiceAccount
-  name: metrics-server
-  namespace: kube-system
----
-#Service
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    k8s-app: metrics-server
-  name: metrics-server
-  namespace: kube-system
-spec:
-  ports:
-  - name: https
-    port: 443
-    targetPort: https
-    protocol: TCP
-  selector:
-    k8s-app: metrics-server
----
-#Deployment
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  labels:
-    k8s-app: metrics-server
-  name: metrics-server
-  namespace: kube-system
-spec:
-  selector:
-    matchLabels:
-      k8s-app: metrics-server
-  template:
-    metadata:
-      labels:
-        k8s-app: metrics-server
-    spec:
-      serviceAccountName: metrics-server
-      containers:
-        - name: metrics-server
-          image: registry.k8s.io/metrics-server/metrics-server:v0.7.1
-          args:
-          - --cert-dir=/tmp
-          - --secure-port=4443
-          - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
-          - --metric-resolution=15s
-          # Homelab-specific: Skip TLS verification and use node status port
-          - --kubelet-insecure-tls
-          - --kubelet-use-node-status-port
-          ports:
-          - containerPort: 4443
-            name: https
-          - containerPort: 10250
-            name: kubelet
-          resources:
-            requests:
-              cpu: 100m
-              memory: 200Mi
-            limits:
-              cpu: 200m
-              memory: 400Mi
-          volumeMounts:
-          - name: tmp-dir
-            mountPath: /tmp
-      volumes:
-        - name: tmp-dir
-          emptyDir: {}
----
-#APIService
-apiVersion: apiregistration.k8s.io/v1
-kind: APIService
-metadata:
-  labels:
-    k8s-app: metrics-server
-  name: v1beta1.metrics.k8s.io
-spec:
-  group: metrics.k8s.io
-  groupPriorityMinimum: 100
-  insecureSkipTLSVerify: true
-  service:
-    name: metrics-server
-    namespace: kube-system
-  version: v1beta1
-  versionPriority: 100
+# #Service Account
+# apiVersion: v1
+# kind: ServiceAccount
+# metadata:
+#   labels:
+#     k8s-app: metrics-server
+#   name: metrics-server
+#   namespace: kube-system
+# ---
+# #Cluster Role
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: ClusterRole
+# metadata:
+#   labels:
+#     k8s-app: metrics-server
+#   name: system:metrics-server
+# rules:
+# - apiGroups: [""]
+#   resources: ["nodes/metrics"]
+#   verbs: ["get"]
+# - apiGroups: [""]
+#   resources: ["pods", "nodes", "nodes/stats", "namespaces", "configmaps"]
+#   verbs: ["get", "list", "watch"]
+# ---
+# #Cluster Role Binding
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: ClusterRoleBinding
+# metadata:
+#   labels:
+#     k8s-app: metrics-server
+#   name: system:metrics-server
+# roleRef:
+#   apiGroup: rbac.authorization.k8s.io
+#   kind: ClusterRole
+#   name: system:metrics-server
+# subjects:
+# - kind: ServiceAccount
+#   name: metrics-server
+#   namespace: kube-system
+# ---
+# #Service
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   labels:
+#     k8s-app: metrics-server
+#   name: metrics-server
+#   namespace: kube-system
+# spec:
+#   ports:
+#   - name: https
+#     port: 443
+#     targetPort: https
+#     protocol: TCP
+#   selector:
+#     k8s-app: metrics-server
+# ---
+# #Deployment
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   labels:
+#     k8s-app: metrics-server
+#   name: metrics-server
+#   namespace: kube-system
+# spec:
+#   selector:
+#     matchLabels:
+#       k8s-app: metrics-server
+#   template:
+#     metadata:
+#       labels:
+#         k8s-app: metrics-server
+#     spec:
+#       serviceAccountName: metrics-server
+#       containers:
+#         - name: metrics-server
+#           image: registry.k8s.io/metrics-server/metrics-server:v0.7.1
+#           args:
+#           - --cert-dir=/tmp
+#           - --secure-port=4443
+#           - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
+#           - --metric-resolution=15s
+#           # Homelab-specific: Skip TLS verification and use node status port
+#           - --kubelet-insecure-tls
+#           - --kubelet-use-node-status-port
+#           ports:
+#           - containerPort: 4443
+#             name: https
+#           - containerPort: 10250
+#             name: kubelet
+#           resources:
+#             requests:
+#               cpu: 100m
+#               memory: 200Mi
+#             limits:
+#               cpu: 200m
+#               memory: 400Mi
+#           volumeMounts:
+#           - name: tmp-dir
+#             mountPath: /tmp
+#       volumes:
+#         - name: tmp-dir
+#           emptyDir: {}
+# ---
+# #APIService
+# apiVersion: apiregistration.k8s.io/v1
+# kind: APIService
+# metadata:
+#   labels:
+#     k8s-app: metrics-server
+#   name: v1beta1.metrics.k8s.io
+# spec:
+#   group: metrics.k8s.io
+#   groupPriorityMinimum: 100
+#   insecureSkipTLSVerify: true
+#   service:
+#     name: metrics-server
+#     namespace: kube-system
+#   version: v1beta1
+#   versionPriority: 100
             
