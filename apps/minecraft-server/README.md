@@ -1,6 +1,6 @@
 # 🚀 Minecraft Server on Kubernetes
 
-This repository contains the Kubernetes configuration for a performance-tuned, modded Minecraft server (Forge 1.20.1).
+This repository contains the Kubernetes configuration for a performance-tuned Minecraft server using the DeceasedCraft modpack via CurseForge.
 
 ## ▶️ Quick Start
 
@@ -8,6 +8,28 @@ To deploy or update the server, apply the Kubernetes manifests from the `deploym
 
 ```bash
 kubectl apply -f apps/minecraft-server/deployment/
+```
+
+---
+
+## 🌐 External Access
+
+The server is exposed externally using **rtun** (a secure reverse tunnel). This allows friends to connect without needing port forwarding on your home router.
+
+### Tunnel Configuration
+- **TCP (Minecraft)**: Port 35000 → `minecraft-server:25565`
+- **UDP (Voice Chat)**: Port 35001 → `minecraft-server:24454`
+
+### Managing the Tunnel
+```bash
+# Check tunnel status
+kubectl get pods -n minecraft -l app=minecraft-tunnel
+
+# View tunnel logs
+kubectl logs -n minecraft -l app=minecraft-tunnel -f
+
+# Restart tunnel
+kubectl rollout restart deployment/minecraft-tunnel -n minecraft
 ```
 
 ---
@@ -20,17 +42,17 @@ Most server settings (like difficulty, max players, etc.) are managed as environ
 
 ### Managing Mods
 
-Server-side mods are managed using CurseForge File IDs.
+Server-side mods are managed via a ConfigMap that lists mod URLs or CurseForge file IDs.
 
-1.  **To add a mod:** Find its **File ID** from the CurseForge website and add it to the `CURSEFORGE_FILES` list in `deployment.yaml`.
-2.  **To remove a mod:** Delete its ID from the list.
+1.  **To add a mod:** Add its CurseForge file ID or download URL to `config/mod-list.txt`.
+2.  **To remove a mod:** Delete its entry from the list.
 
 The server will automatically download and install the correct mods on restart.
 
-**Current Mods (`CURSEFORGE_FILES`):**
-```yaml
-# In deployment.yaml
-value: "256717,429235,790626,416089,361579" # clumps,ferritecore,modernfix,spark,simple-voice-chat
+**Current Mods (from `config/mod-list.txt`):**
+```text
+# Mods are loaded from this file
+# See deployment.yaml MODS_FILE environment variable for configuration
 ```
 
 ---

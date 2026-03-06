@@ -3,6 +3,7 @@
 ## ✅ Completed Setup
 
 ### Infrastructure
+
 - [x] **k3s cluster** - Running on Debian homelab server
 - [x] **Remote kubectl access** - Configured from WSL
 - [x] **SSH access** - Key-based authentication, password disabled
@@ -10,20 +11,22 @@
 - [x] **Tailscale VPN** - Secure remote access from anywhere
 
 ### Applications
+
 - [x] **Minecraft Server** - Java Edition 1.20.1 + Forge 47.2.0
 - [x] **Persistent Storage** - 20GB PVC for world data
-- [x] **External Access** - ngrok tunnel for friends
+- [x] **External Access** - rtun reverse tunnel for friends
 - [x] **Resource Management** - CPU/memory limits configured
 
 ## 🚀 Current Architecture
 
 ```
-Internet → ngrok tunnel → WSL → Homelab (LOCAL_IP) → k3s → Minecraft Pod
+Internet → rtun tunnel → Homelab → k3s → Minecraft Pod
 ```
 
 ### Network Access
-- **Local**: `LOCAL_IP:25565`
-- **External**: `ngrok-url:port` (temporary URLs)
+
+- **Local**: `minecraft-server.minecraft.svc.cluster.local:25565`
+- **External**: Via rtun tunnel (ports 35000/tcp, 35001/udp)
 - **Remote SSH**: Via Tailscale VPN
 
 ## 📁 Repository Structure
@@ -44,6 +47,7 @@ homelab-k8s/
 ## 🎯 Current Status
 
 ### Minecraft Server Specs
+
 - **Version**: Minecraft 1.20.1 + Forge 47.2.0
 - **Server Name**: "My Homelab Server"
 - **Capacity**: 20 players
@@ -52,6 +56,7 @@ homelab-k8s/
 - **Access**: LoadBalancer service
 
 ### Kubernetes Components
+
 - **Namespace**: `minecraft`
 - **Deployment**: `minecraft-server`
 - **Service**: LoadBalancer type
@@ -60,6 +65,7 @@ homelab-k8s/
 ## 🔧 Management Commands
 
 ### Server Status
+
 ```bash
 # Check all resources
 kubectl get all -n minecraft
@@ -75,9 +81,10 @@ kubectl rollout restart deployment/minecraft-server -n minecraft
 ```
 
 ### Server Access Commands
+
 ```bash
-# Start ngrok tunnel (from WSL)
-ngrok tcp LOCAL_IP:25565
+# The rtun tunnel handles external access automatically
+# Tunnel runs in separate deployment: kubectl get pods -n minecraft -l app=minecraft-tunnel
 
 # SSH via Tailscale (from anywhere)
 ssh homelab-remote  # Using Tailscale IP
@@ -94,6 +101,7 @@ ssh homelab-remote  # Using Tailscale IP
 ## 📚 Learning Achievements
 
 This setup demonstrates:
+
 - **Kubernetes fundamentals** - Pods, Services, Deployments, PVCs
 - **Container orchestration** - Resource management, persistence
 - **Network security** - VPN, tunneling, firewall configuration
@@ -107,7 +115,3 @@ This setup demonstrates:
 - **All dimensions** - Overworld, Nether, End enabled
 - **Persistent worlds** - Data survives pod restarts
 - **External access** - Friends can join from anywhere
-
----
-
-**Next**: See `next-steps.md` for upcoming improvements and learning opportunities. 
