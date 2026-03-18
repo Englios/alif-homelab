@@ -1,0 +1,24 @@
+# Kubernetes Access Index
+
+This is the main entry point for Kubernetes access documentation in this repo.
+
+## Current state
+
+- Human access is documented separately from bot access.
+- The live automation bot is currently applied in `inference-engine`.
+- Additional bot access for `experiment` is prepared in the repo but not yet applied.
+
+## Guides
+
+- [Kubernetes Access Overview](./k8s-access-overview.md) — Current repo and cluster access state
+- [Kubernetes Human Access](./k8s-human-access.md) — Human onboarding, RBAC groups, and OIDC path
+- [Kubernetes Bot Access](./k8s-bot-access.md) — Bot service account scope and verification
+
+## Key manifests and templates
+
+- `infrastructure/access/rbac/role-catalog.yaml`
+- `infrastructure/access/rbac/bot-access.yaml`
+- `infrastructure/access/rbac/bot-access.experiment.yaml`
+- `templates/kubeconfig.token.template.yaml`
+- `templates/k3s-oidc-config.example.yaml`
+- `scripts/make-token-kubeconfig.sh`
