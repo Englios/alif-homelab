@@ -10,17 +10,3 @@ rules:
 - apiGroups: [""]
   resources: ["pods/exec", "pods/portforward", "services/proxy"]
   verbs: ["create"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: homelab-automation-bot
-  namespace: <TARGET_NAMESPACE>
-subjects:
-- kind: ServiceAccount
-  name: homelab-automation-bot
-  namespace: inference-engine
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: homelab-automation-bot

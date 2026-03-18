@@ -17,7 +17,7 @@ The existing `scripts/setup-kubectl.sh` flow is still an owner/admin bootstrap p
 Apply the shared roles first:
 
 ```bash
-kubectl apply -f infrastructure/access/rbac/role-catalog.yaml
+kubectl apply -f infrastructure/access/rbac/humans/role-catalog.yaml
 ```
 
 This creates:
@@ -28,8 +28,8 @@ This creates:
 
 Example bindings in this repo:
 
-- `infrastructure/access/rbac/examples/readonly-global-binding.example.yaml`
-- `infrastructure/access/rbac/examples/namespace-operator-minecraft.yaml`
+- `infrastructure/access/rbac/humans/examples/readonly-global-binding.example.yaml`
+- `infrastructure/access/rbac/humans/examples/namespace-operator-minecraft.yaml`
 
 ## Near-term path: client certificates
 

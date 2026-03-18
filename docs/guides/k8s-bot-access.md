@@ -6,13 +6,12 @@ This guide covers the automation bot access model for the homelab cluster.
 
 The live cluster now has:
 
-- service account: `homelab-automation-bot`
-- home namespace: `inference-engine`
-- manifest: `infrastructure/access/rbac/bot-access.yaml`
+- OIDC machine identity bound through `infrastructure/access/rbac/bots/oidc-bindings.yaml`
+- shared bot permission definitions in `infrastructure/access/rbac/bots/definitions.yaml`
 - runtime location: external VM, not an in-cluster Pod
 - purpose: external LLM agent that runs Kubernetes experiments with constrained access
 
-The service-account path still exists in the cluster today, but it is no longer the recommended operating model for `hermes-vm`.
+The old service-account identity has been removed from the live cluster. `hermes-vm` should use the OIDC machine identity path only.
 
 Applied state verified in-cluster:
 
@@ -28,13 +27,11 @@ Applied state verified in-cluster:
 | `inference-engine` | `*` | `get`, `list`, `watch`, `create`, `update`, `patch`, `delete` |
 | `inference-engine` debug | `pods/exec`, `pods/portforward`, `services/proxy` | `create` |
 
-## Apply the live bot profile
+## Apply the bot permission definitions
 
 ```bash
-kubectl apply -f infrastructure/access/rbac/bot-access.yaml
+kubectl apply -f infrastructure/access/rbac/bots/definitions.yaml
 ```
-
-This is now considered legacy support for the older service-account-based bot identity.
 
 ## Future experiment namespace access
 
@@ -42,19 +39,21 @@ The repo also includes:
 
 - `infrastructure/access/rbac/bot-access.experiment.yaml`
 
+
 Apply it only after the `experiment` namespace exists:
 
 ```bash
-kubectl apply -f infrastructure/access/rbac/bot-access.experiment.yaml
+kubectl apply -f infrastructure/access/rbac/bots/experiment-role.yaml
 ```
 
-That manifest reuses the same service account from `inference-engine` and grants matching namespace-local access in `experiment`.
+That manifest defines the matching namespace-local permissions in `experiment`.
 
 ## Future namespace expansion
 
 If you later want the same bot to manage another namespace such as `benchmark`, `celery-pipeline`, or `qwen-test`, use:
 
 - `infrastructure/access/rbac/bot-access.namespace-template.yaml`
+- `infrastructure/access/rbac/bots/namespace-role.template.yaml`
 
 Replace `<TARGET_NAMESPACE>` with the real namespace name, then apply it after that namespace exists.
 
@@ -63,6 +62,7 @@ Replace `<TARGET_NAMESPACE>` with the real namespace name, then apply it after t
 For the long-term VM bot identity, use:
 
 - `infrastructure/access/rbac/bot-access.oidc.yaml`
+- `infrastructure/access/rbac/bots/oidc-bindings.yaml`
 
 This binds the expected OIDC machine username:
 
@@ -70,7 +70,7 @@ This binds the expected OIDC machine username:
 
 to the same effective cluster and namespace permissions.
 
-This is now the preferred path for `hermes-vm`.
+This is now the active path for `hermes-vm`.
 
 ## Why this bot model is safe enough
 
@@ -98,11 +98,6 @@ Use the inference app repo for RBAC only when a role is packaged and deployed as
 ## Recommended renewal model
 
 Because the current bot runs **outside** the cluster on its own VM, there are two practical modes:
-
-### Legacy migration model
-
-- short-lived kubeconfig minted from the `homelab-automation-bot` service account
-- useful only if you intentionally need a temporary fallback during migration
 
 ### Recommended steady-state model for automatic renewal
 
@@ -134,7 +129,7 @@ Because the bot is always on, this is now the recommended steady-state answer.
 4. Let the bot fetch and refresh short-lived OIDC tokens on the VM.
 5. Let `hermes-vm` own its local kubeconfig generation and storage.
 
-This is the intended steady-state answer because auto-renewal is a hard requirement.
+This is the intended and active answer because auto-renewal is a hard requirement.
 
 Use `templates/kubeconfig.oidc-exec.template.yaml` as the starting point for the bot's self-refreshing kubeconfig.
 
@@ -144,7 +139,7 @@ That same internal issuer should also become the long-term auth path for human u
 
 ## Verification commands
 
-These checks were used for the live bot:
+These checks were used for the old service-account path during earlier validation:
 
 ```bash
 kubectl auth can-i --as=system:serviceaccount:inference-engine:homelab-automation-bot get nodes
