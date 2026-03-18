@@ -33,3 +33,23 @@ For future expansion, the repo now also includes a reusable namespace template f
 - Token kubeconfig template: `templates/kubeconfig.token.template.yaml`
 - OIDC API server example: `templates/k3s-oidc-config.example.yaml`
 - Token kubeconfig helper: `scripts/make-token-kubeconfig.sh`
+
+## Ownership boundary
+
+Manage **cluster access policy in this repo**.
+
+That includes:
+
+- human RBAC roles and bindings
+- shared bot/service account access patterns
+- cluster-scoped read permissions
+- namespace access granted to automation identities that are part of the homelab platform
+
+Manage **application-shipped RBAC in the application repo** only when the RBAC is tightly coupled to the workload being deployed.
+
+For example, keep app-local permissions in `inference-engine-deployment` when they are deployed together with the app itself, such as:
+
+- a service account used only by one inference workload
+- a Role/RoleBinding required by a single deployment in its own namespace
+
+For the current `homelab-automation-bot`, the source of truth should stay in `homelab-k8s` because it is a cluster access policy decision, not just an app packaging detail.

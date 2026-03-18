@@ -59,6 +59,18 @@ Replace `<TARGET_NAMESPACE>` with the real namespace name, then apply it after t
 - Write access is restricted to explicit namespaces.
 - Debug permissions are limited to the namespaces where the bot is allowed to operate.
 
+## Where this RBAC should live
+
+For this homelab, the current bot RBAC should live in `homelab-k8s`, not in `inference-engine-deployment`.
+
+Why:
+
+- it grants cluster-scoped read access
+- it can span multiple namespaces over time
+- it represents platform policy, not just one app's deployment manifest
+
+Use the inference app repo for RBAC only when a role is packaged and deployed as part of that single application.
+
 ## Generate a kubeconfig for the bot
 
 Use:
@@ -77,7 +89,7 @@ kubectl auth can-i --as=system:serviceaccount:inference-engine:homelab-automatio
 kubectl auth can-i --as=system:serviceaccount:inference-engine:homelab-automation-bot list namespaces
 kubectl auth can-i --as=system:serviceaccount:inference-engine:homelab-automation-bot get storageclasses.storage.k8s.io
 kubectl auth can-i --as=system:serviceaccount:inference-engine:homelab-automation-bot get ingressclasses.networking.k8s.io
-kubectl auth can-i --as=system:serviceaccount:inference-engine:homelab-automation-bot get events.events.k8s.io -A
+kubectl auth can-i --as=system:serviceaccount:inference-engine:homelab-automation-bot list events.events.k8s.io -A
 kubectl auth can-i --as=system:serviceaccount:inference-engine:homelab-automation-bot get nodes.metrics.k8s.io
 kubectl auth can-i --as=system:serviceaccount:inference-engine:homelab-automation-bot create deployments.apps -n inference-engine
 kubectl auth can-i --as=system:serviceaccount:inference-engine:homelab-automation-bot create pods/exec -n inference-engine
