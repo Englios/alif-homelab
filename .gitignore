@@ -5,6 +5,7 @@
 **.secret.*
 **/*secret.*
 !**/*secret.example.*
+/.secret*
 *.ignore
 
 **/gpu-feature-discovery
