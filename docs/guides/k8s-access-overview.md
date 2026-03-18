@@ -7,7 +7,7 @@ This repo now tracks Kubernetes access in two separate paths:
 
 Long term, both humans and always-on external bots should authenticate through the same internal OIDC provider over Tailscale, with RBAC deciding what each identity can do.
 
-That means several earlier pieces are now **fallback/bootstrap paths**, not the preferred steady-state design.
+That means several earlier pieces are now **legacy migration paths**, not the preferred steady-state design.
 
 ## Current live state
 
@@ -21,7 +21,7 @@ That bot currently has:
 - full CRUD-style access in the `inference-engine` namespace
 - debug access for `pods/exec`, `pods/portforward`, and `services/proxy` inside `inference-engine`
 
-Today, that off-cluster bot can use a short-lived kubeconfig minted from the service account as a bootstrap path. Because the bot is always on and expected to refresh its own credentials, the better steady-state model is the same internal OIDC system that humans should eventually use, exposed only on the Tailscale network.
+The off-cluster bot should now use the same internal OIDC system that humans should eventually use, exposed only on the Tailscale network. `hermes-vm` is responsible for generating and managing its own local kubeconfig from that OIDC configuration.
 
 The repo also includes an extra manifest for `experiment`, but that namespace has **not** been created or applied yet.
 
@@ -39,19 +39,18 @@ For future expansion, the repo now also includes a reusable namespace template f
 - OIDC bot bindings: `infrastructure/access/rbac/bot-access.oidc.yaml`
 - Future experiment bot access: `infrastructure/access/rbac/bot-access.experiment.yaml`
 - Reusable future namespace template: `infrastructure/access/rbac/bot-access.namespace-template.yaml`
-- Token kubeconfig template: `templates/kubeconfig.token.template.yaml`
+- OIDC exec kubeconfig template: `templates/kubeconfig.oidc-exec.template.yaml`
 - OIDC API server example: `templates/k3s-oidc-config.example.yaml`
-- Token kubeconfig helper: `scripts/make-token-kubeconfig.sh`
 
 ## What is no longer primary
 
-These are still useful, but they are no longer the preferred long-term path once OIDC is live:
+These are no longer the preferred long-term path once OIDC is live:
 
 - manually minted bot kubeconfigs
 - direct service-account-token auth for the always-on VM bot
 - separate human and bot identity systems
 
-Keep them only for bootstrap, break-glass access, or temporary fallback during migration.
+Keep them only as temporary migration aids or for explicit break-glass use if you still need them.
 
 ## Ownership boundary
 

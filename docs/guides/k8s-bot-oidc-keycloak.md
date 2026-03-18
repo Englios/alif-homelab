@@ -89,6 +89,7 @@ Suggested values:
 - realm: `homelab`
 - Kubernetes API OIDC client ID: `kubernetes`
 - bot client ID: `homelab-automation-bot`
+- bot machine username in Kubernetes: `oidc:service-account-homelab-automation-bot`
 
 ## Step 3: Configure k3s API server
 
@@ -122,7 +123,7 @@ sudo systemctl restart k3s
 
 Bind the OIDC machine identity to the same effective permissions the bot already has.
 
-Keep the existing service-account RBAC for now as a fallback/bootstrap path, but the long-term steady-state binding should target the OIDC identity.
+The OIDC identity is now the intended steady-state binding target for `hermes-vm`.
 
 Typical approaches:
 
@@ -143,6 +144,12 @@ https://debian.munchkin-komodo.ts.net/realms/homelab
 
 The bot kubeconfig should use an exec block so kubelogin can fetch and refresh tokens automatically.
 
+The bot VM should trust the internal issuer CA, for example at:
+
+```text
+/etc/homelab/oidc/ca.crt
+```
+
 ## Step 6: Install kubelogin on the bot VM
 
 On `hermes-vm`, install the kubectl OIDC login plugin.
@@ -161,10 +168,26 @@ From the bot VM:
 
 ## Recommended rollout
 
-1. Keep the current service-account kubeconfig working.
+1. Keep the old service-account path only until `hermes-vm` is fully switched.
 2. Deploy Keycloak on an internal-only endpoint.
 3. Configure k3s OIDC trust.
 4. Create the machine client.
 5. Build and test the OIDC exec kubeconfig on `hermes-vm`.
 6. Switch the bot over after validation.
 7. Keep the old service-account path only as an emergency fallback until you are confident in OIDC.
+
+## Current implementation status
+
+This repo and cluster now have:
+
+- Keycloak deployed internally on `debian.munchkin-komodo.ts.net`
+- k3s configured to trust `https://debian.munchkin-komodo.ts.net/realms/homelab`
+- a machine client `homelab-automation-bot`
+- working OIDC RBAC bindings for the bot identity
+
+What still needs to happen on `hermes-vm`:
+
+- install `kubelogin`
+- copy the internal OIDC CA to `/etc/homelab/oidc/ca.crt`
+- write the OIDC exec kubeconfig using `templates/kubeconfig.oidc-exec.template.yaml`
+- store the bot client secret locally on the VM instead of in this repo

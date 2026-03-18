@@ -24,6 +24,5 @@ This is the main entry point for Kubernetes access documentation in this repo.
 - `infrastructure/access/rbac/bot-access.oidc.yaml`
 - `infrastructure/access/rbac/bot-access.experiment.yaml`
 - `infrastructure/access/rbac/bot-access.namespace-template.yaml`
-- `templates/kubeconfig.token.template.yaml`
+- `templates/kubeconfig.oidc-exec.template.yaml`
 - `templates/k3s-oidc-config.example.yaml`
-- `scripts/make-token-kubeconfig.sh`
