@@ -27,6 +27,7 @@ docs/
 | [Kubernetes Access Overview](./guides/k8s-access-overview.md) | Current access model and repo files |
 | [Kubernetes Human Access](./guides/k8s-human-access.md) | How human users should access the cluster |
 | [Kubernetes Bot Access](./guides/k8s-bot-access.md) | Bot service account permissions and usage |
+| [Kubernetes Bot OIDC with Keycloak over Tailscale](./guides/k8s-bot-oidc-keycloak.md) | Internal-only OIDC for the always-on VM bot |
 
 ### Howto
 | Doc | Description |

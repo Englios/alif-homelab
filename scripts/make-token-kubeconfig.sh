@@ -87,9 +87,17 @@ if [[ -z "$OUTPUT_PATH" ]]; then
     OUTPUT_PATH="./${CONTEXT_NAME}.kubeconfig"
 fi
 
+CA_FILE=$(mktemp)
+cleanup() {
+    rm -f "$CA_FILE"
+}
+trap cleanup EXIT
+
+printf '%s' "$CA_DATA" | base64 -d > "$CA_FILE"
+
 kubectl config --kubeconfig="$OUTPUT_PATH" set-cluster "$CLUSTER_NAME" \
     --server="$SERVER_URL" \
-    --certificate-authority-data="$CA_DATA" \
+    --certificate-authority="$CA_FILE" \
     --embed-certs=true >/dev/null
 
 kubectl config --kubeconfig="$OUTPUT_PATH" set-credentials "$USER_NAME" \

@@ -64,21 +64,29 @@ kubectl auth can-i --as=alice --as-group=homelab:readonly get pods -A
 kubectl auth can-i --as=alice --as-group=homelab:minecraft-operators patch deployment -n minecraft
 ```
 
-## Long-term path: OIDC
+## Long-term path: internal OIDC over Tailscale
 
-When you want easier offboarding, MFA, and centralized identity, move human access to OIDC.
+For this homelab, the recommended long-term path is to move human access to the same internal OIDC provider that the always-on VM bot should use.
+
+That means:
+
+- one internal identity provider
+- one k3s OIDC trust configuration
+- different RBAC for humans and non-human machine identities
 
 Use `templates/k3s-oidc-config.example.yaml` as the starting point for `/etc/rancher/k3s/config.yaml` on the control plane.
 
 Typical flow:
 
-1. Choose an OIDC provider such as Authentik, Dex, or Keycloak.
+1. Stand up the internal OIDC provider on a Tailscale-reachable hostname.
 2. Place the provider CA at `/etc/rancher/k3s/oidc/ca.crt` if needed.
 3. Merge the OIDC flags into the k3s config.
 4. Restart k3s.
 5. Bind IdP groups to the same Kubernetes groups already used by RBAC.
 
 Because the RBAC is group-based, authentication can change later without reworking authorization.
+
+The current recommended direction for this repo is Keycloak over Tailscale so both humans and the off-cluster bot share the same internal issuer.
 
 ## Offboarding guidance
 

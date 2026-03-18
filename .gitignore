@@ -2,7 +2,9 @@
 
 **/ignore*
 .env
-*.secret
+**.secret.*
+**/*secret.*
+!**/*secret.example.*
 *.ignore
 
 **/gpu-feature-discovery
