@@ -37,7 +37,7 @@ kubectl apply -f infrastructure/access/rbac/bots/definitions.yaml
 
 The repo also includes:
 
-- `infrastructure/access/rbac/bot-access.experiment.yaml`
+- `infrastructure/access/rbac/bots/experiment-role.yaml`
 
 
 Apply it only after the `experiment` namespace exists:
@@ -52,7 +52,7 @@ That manifest defines the matching namespace-local permissions in `experiment`.
 
 If you later want the same bot to manage another namespace such as `benchmark`, `celery-pipeline`, or `qwen-test`, use:
 
-- `infrastructure/access/rbac/bot-access.namespace-template.yaml`
+- `infrastructure/access/rbac/bots/namespace-role.template.yaml`
 - `infrastructure/access/rbac/bots/namespace-role.template.yaml`
 
 Replace `<TARGET_NAMESPACE>` with the real namespace name, then apply it after that namespace exists.
@@ -61,7 +61,7 @@ Replace `<TARGET_NAMESPACE>` with the real namespace name, then apply it after t
 
 For the long-term VM bot identity, use:
 
-- `infrastructure/access/rbac/bot-access.oidc.yaml`
+- `infrastructure/access/rbac/bots/oidc-bindings.yaml`
 - `infrastructure/access/rbac/bots/oidc-bindings.yaml`
 
 This binds the expected OIDC machine username:
