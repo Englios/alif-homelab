@@ -12,9 +12,17 @@ The live cluster now has:
 
 Applied state verified in-cluster:
 
-- cluster-scoped read-only access to `nodes`, `namespaces`, `storageclasses`, `ingressclasses`, and `metrics.k8s.io` node metrics
+- cluster-scoped read-only access to `nodes`, `namespaces`, `storageclasses`, `ingressclasses`, cluster-wide events visibility, and `metrics.k8s.io` node metrics
 - full CRUD-style access in `inference-engine`
 - `create` access for `pods/exec`, `pods/portforward`, and `services/proxy` in `inference-engine`
+
+## Permission matrix
+
+| Scope | Resources | Verbs |
+|------|-----------|-------|
+| Cluster | `nodes`, `namespaces`, `storageclasses`, `ingressclasses`, `events`, `events.events.k8s.io`, `nodes.metrics.k8s.io` | `get`, `list`, `watch` |
+| `inference-engine` | `*` | `get`, `list`, `watch`, `create`, `update`, `patch`, `delete` |
+| `inference-engine` debug | `pods/exec`, `pods/portforward`, `services/proxy` | `create` |
 
 ## Apply the live bot profile
 
@@ -35,6 +43,14 @@ kubectl apply -f infrastructure/access/rbac/bot-access.experiment.yaml
 ```
 
 That manifest reuses the same service account from `inference-engine` and grants matching namespace-local access in `experiment`.
+
+## Future namespace expansion
+
+If you later want the same bot to manage another namespace such as `benchmark`, `celery-pipeline`, or `qwen-test`, use:
+
+- `infrastructure/access/rbac/bot-access.namespace-template.yaml`
+
+Replace `<TARGET_NAMESPACE>` with the real namespace name, then apply it after that namespace exists.
 
 ## Why this bot model is safe enough
 
@@ -61,6 +77,7 @@ kubectl auth can-i --as=system:serviceaccount:inference-engine:homelab-automatio
 kubectl auth can-i --as=system:serviceaccount:inference-engine:homelab-automation-bot list namespaces
 kubectl auth can-i --as=system:serviceaccount:inference-engine:homelab-automation-bot get storageclasses.storage.k8s.io
 kubectl auth can-i --as=system:serviceaccount:inference-engine:homelab-automation-bot get ingressclasses.networking.k8s.io
+kubectl auth can-i --as=system:serviceaccount:inference-engine:homelab-automation-bot get events.events.k8s.io -A
 kubectl auth can-i --as=system:serviceaccount:inference-engine:homelab-automation-bot get nodes.metrics.k8s.io
 kubectl auth can-i --as=system:serviceaccount:inference-engine:homelab-automation-bot create deployments.apps -n inference-engine
 kubectl auth can-i --as=system:serviceaccount:inference-engine:homelab-automation-bot create pods/exec -n inference-engine

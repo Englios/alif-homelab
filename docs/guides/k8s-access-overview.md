@@ -11,11 +11,13 @@ The cluster currently has a bot service account named `homelab-automation-bot` a
 
 That bot currently has:
 
-- cluster-scoped read-only access to nodes, namespaces, storage classes, ingress classes, and node metrics
+- cluster-scoped read-only access to nodes, namespaces, storage classes, ingress classes, all events, and node metrics
 - full CRUD-style access in the `inference-engine` namespace
 - debug access for `pods/exec`, `pods/portforward`, and `services/proxy` inside `inference-engine`
 
 The repo also includes an extra manifest for `experiment`, but that namespace has **not** been created or applied yet.
+
+For future expansion, the repo now also includes a reusable namespace template for additional bot-managed namespaces such as `benchmark`, `celery-pipeline`, or `qwen-test`.
 
 ## Guides
 
@@ -27,6 +29,7 @@ The repo also includes an extra manifest for `experiment`, but that namespace ha
 - Shared human role catalog: `infrastructure/access/rbac/role-catalog.yaml`
 - Live bot access: `infrastructure/access/rbac/bot-access.yaml`
 - Future experiment bot access: `infrastructure/access/rbac/bot-access.experiment.yaml`
+- Reusable future namespace template: `infrastructure/access/rbac/bot-access.namespace-template.yaml`
 - Token kubeconfig template: `templates/kubeconfig.token.template.yaml`
 - OIDC API server example: `templates/k3s-oidc-config.example.yaml`
 - Token kubeconfig helper: `scripts/make-token-kubeconfig.sh`

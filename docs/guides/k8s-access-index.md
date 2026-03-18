@@ -7,6 +7,7 @@ This is the main entry point for Kubernetes access documentation in this repo.
 - Human access is documented separately from bot access.
 - The live automation bot is currently applied in `inference-engine`.
 - Additional bot access for `experiment` is prepared in the repo but not yet applied.
+- A reusable namespace template is available for future bot targets such as `benchmark`, `celery-pipeline`, or `qwen-test`.
 
 ## Guides
 
@@ -19,6 +20,7 @@ This is the main entry point for Kubernetes access documentation in this repo.
 - `infrastructure/access/rbac/role-catalog.yaml`
 - `infrastructure/access/rbac/bot-access.yaml`
 - `infrastructure/access/rbac/bot-access.experiment.yaml`
+- `infrastructure/access/rbac/bot-access.namespace-template.yaml`
 - `templates/kubeconfig.token.template.yaml`
 - `templates/k3s-oidc-config.example.yaml`
 - `scripts/make-token-kubeconfig.sh`
