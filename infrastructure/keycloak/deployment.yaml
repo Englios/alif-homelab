@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  namespace: keycloak
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: debian
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                - debian
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: keycloak
+        image: quay.io/keycloak/keycloak:26.5.0
+        args:
+        - start
+        - --http-enabled=true
+        - --proxy-headers=xforwarded
+        env:
+        - name: KC_BOOTSTRAP_ADMIN_USERNAME
+          value: admin
+        - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-bootstrap
+              key: password
+        - name: KC_HOSTNAME
+          value: debian.munchkin-komodo.ts.net
+        - name: KC_DB
+          value: dev-file
+        - name: KC_HTTP_RELATIVE_PATH
+          value: /
+        - name: JAVA_OPTS_KC_HEAP
+          value: -XX:MaxRAMPercentage=65 -XX:InitialRAMPercentage=30
+        ports:
+        - containerPort: 8080
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /realms/master
+            port: http
+          initialDelaySeconds: 90
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 12
+        livenessProbe:
+          httpGet:
+            path: /realms/master
+            port: http
+          initialDelaySeconds: 180
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 6
+        resources:
+          requests:
+            cpu: 100m
+            memory: 768Mi
+          limits:
+            cpu: 1000m
+            memory: 1536Mi
+        volumeMounts:
+        - name: keycloak-data
+          mountPath: /opt/keycloak/data
+      volumes:
+      - name: keycloak-data
+        persistentVolumeClaim:
+          claimName: keycloak-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: keycloak-data
+  namespace: keycloak
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi

@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: keycloak
+  namespace: keycloak
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - debian.munchkin-komodo.ts.net
+    secretName: keycloak-tls
+  rules:
+  - host: debian.munchkin-komodo.ts.net
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: keycloak
+            port:
+              number: 80

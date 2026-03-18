@@ -1,7 +1,7 @@
 tls-san:
   - <TAILSCALE_IP>
 kube-apiserver-arg:
-  - oidc-issuer-url=https://<OIDC_ISSUER_HOSTNAME>/application/o/kubernetes/
+  - oidc-issuer-url=https://<OIDC_TAILSCALE_HOSTNAME>/application/o/kubernetes/
   - oidc-client-id=kubernetes
   - oidc-username-claim=email
   - oidc-groups-claim=groups
