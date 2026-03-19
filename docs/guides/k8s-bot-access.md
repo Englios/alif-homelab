@@ -16,15 +16,19 @@ The old service-account identity has been removed from the live cluster. `hermes
 Applied state verified in-cluster:
 
 - cluster-scoped read-only access to `nodes`, `namespaces`, `storageclasses`, `ingressclasses`, cluster-wide events visibility, and `metrics.k8s.io` node metrics
+- namespaced read-only access across the cluster for common workload resources (`pods`, `pods/log`, `services`, `endpoints`, `persistentvolumeclaims`, `configmaps`, `events`, `deployments`, `replicasets`, `statefulsets`, `daemonsets`, `jobs`, `cronjobs`, `ingresses`, `networkpolicies`, `horizontalpodautoscalers`)
 - full CRUD-style access in `inference-engine`
+- full CRUD-style access in `experiment` (after that namespace role and binding are applied)
 - `create` access for `pods/exec`, `pods/portforward`, and `services/proxy` in `inference-engine`
 
 ## Permission matrix
 
 | Scope | Resources | Verbs |
-|------|-----------|-------|
+| ----- | --------- | ----- |
 | Cluster | `nodes`, `namespaces`, `storageclasses`, `ingressclasses`, `events`, `events.events.k8s.io`, `nodes.metrics.k8s.io` | `get`, `list`, `watch` |
+| Cluster (namespaced resources) | `pods`, `pods/log`, `services`, `endpoints`, `persistentvolumeclaims`, `configmaps`, `events`, `deployments`, `replicasets`, `statefulsets`, `daemonsets`, `jobs`, `cronjobs`, `ingresses`, `networkpolicies`, `horizontalpodautoscalers` | `get`, `list`, `watch` |
 | `inference-engine` | `*` | `get`, `list`, `watch`, `create`, `update`, `patch`, `delete` |
+| `experiment` | `*` | `get`, `list`, `watch`, `create`, `update`, `patch`, `delete` |
 | `inference-engine` debug | `pods/exec`, `pods/portforward`, `services/proxy` | `create` |
 
 ## Apply the bot permission definitions
@@ -38,7 +42,6 @@ kubectl apply -f infrastructure/access/rbac/bots/definitions.yaml
 The repo also includes:
 
 - `infrastructure/access/rbac/bots/experiment-role.yaml`
-
 
 Apply it only after the `experiment` namespace exists:
 
@@ -76,7 +79,7 @@ This is now the active path for `hermes-vm`.
 
 - The bot is a workload identity, not a human login.
 - Cluster-wide permissions are read-only.
-- Write access is restricted to explicit namespaces.
+- Write access is restricted to explicit namespaces (`inference-engine` and `experiment`).
 - Debug permissions are limited to the namespaces where the bot is allowed to operate.
 
 ## Where this RBAC should live

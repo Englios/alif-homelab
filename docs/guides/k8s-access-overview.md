@@ -17,7 +17,9 @@ The bot currently runs **outside** the cluster on its own VM as an LLM-based exp
 That bot currently has:
 
 - cluster-scoped read-only access to nodes, namespaces, storage classes, ingress classes, all events, and node metrics
+- namespaced read-only access across the cluster for common workload resources
 - full CRUD-style access in the `inference-engine` namespace
+- full CRUD-style access in the `experiment` namespace after that namespace RBAC is applied
 - debug access for `pods/exec`, `pods/portforward`, and `services/proxy` inside `inference-engine`
 
 The off-cluster bot now uses the same internal OIDC system that humans should eventually use, exposed only on the Tailscale network. `hermes-vm` is responsible for generating and managing its own local kubeconfig from that OIDC configuration.
