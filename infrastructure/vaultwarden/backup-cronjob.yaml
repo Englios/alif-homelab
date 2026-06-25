@@ -1,0 +1,48 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: vaultwarden-local-backup
+  namespace: vaultwarden
+spec:
+  # Suspended: manual resume required.
+  # This CronJob copies the SQLite database to /data/backups/ daily.
+  # ⚠️ LIMITATION: This is a same-PVC copy — it does NOT protect against
+  # PVC corruption, node failure, or cluster loss. It only guards against
+  # accidental data corruption within the running instance.
+  # External / off-cluster backup is Phase 2.
+  suspend: true
+  schedule: "0 2 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: alpine:3.20
+              imagePullPolicy: IfNotPresent
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  BACKUP_DIR="/data/backups"
+                  TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+                  mkdir -p "$BACKUP_DIR"
+                  if [ -f /data/db.sqlite3 ]; then
+                    cp /data/db.sqlite3 "$BACKUP_DIR/db-${TIMESTAMP}.sqlite3"
+                    echo "backup: db-${TIMESTAMP}.sqlite3 written"
+                    # Prune backups older than 30 days
+                    find "$BACKUP_DIR" -name 'db-*.sqlite3' -mtime +30 -delete
+                  else
+                    echo "backup: /data/db.sqlite3 not found — skipping"
+                    exit 1
+                  fi
+              volumeMounts:
+                - name: data
+                  mountPath: /data
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: vaultwarden-data

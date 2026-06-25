@@ -1,0 +1,87 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vaultwarden
+  namespace: vaultwarden
+  labels:
+    app.kubernetes.io/name: vaultwarden
+    app.kubernetes.io/instance: vaultwarden
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vaultwarden
+      app.kubernetes.io/instance: vaultwarden
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: vaultwarden
+        app.kubernetes.io/instance: vaultwarden
+    spec:
+      # Single replica with SQLite — avoid concurrent writers.
+      containers:
+        - name: vaultwarden
+          image: vaultwarden/server:1.36.0-alpine
+          imagePullPolicy: IfNotPresent
+          # Sensitive values come from the SOPS-encrypted Secret.
+          # Non-sensitive defaults are set explicitly below.
+          envFrom:
+            - secretRef:
+                name: vaultwarden-secrets
+          env:
+            # --- Non-sensitive configuration (plain-text) ---
+            - name: SIGNUPS_ALLOWED
+              value: "false"
+            - name: INVITATIONS_ALLOWED
+              value: "false"
+            - name: WEBSOCKET_ENABLED
+              value: "true"
+            - name: ROCKET_PORT
+              value: "80"
+            - name: DATA_FOLDER
+              value: /data
+            # --- Logging ---
+            - name: LOG_FILE
+              value: /data/vaultwarden.log
+            - name: LOG_LEVEL
+              value: info
+            # --- SMTP (Phase 2, uncomment when ready) ---
+            # SMTP_HOST, SMTP_PORT, SMTP_SECURITY, SMTP_USERNAME,
+            # SMTP_PASSWORD, SMTP_FROM — add to vaultwarden-secrets
+            # when email is configured.
+          ports:
+            - containerPort: 80
+              name: http
+              protocol: TCP
+            - containerPort: 3012
+              name: ws
+              protocol: TCP
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /alive
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /alive
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: vaultwarden-data

@@ -1,0 +1,20 @@
+---
+# SOPS configuration for homelab-k8s.
+#
+# IMPORTANT: Replace the placeholder age public key below with your real
+# key BEFORE running `sops --encrypt` on any secret file.
+#
+# Generate a key:
+#   age-keygen -o age.key
+#   age-keygen -y age.key   # prints the public key
+#
+# Store age.key offline (paper/USB break-glass); never commit it.
+# Vaultwarden is the primary long-term store once available.
+#
+creation_rules:
+  # Encrypt all secret files in clusters/homelab/secrets/ with age.
+  # The trailing newline before `age:` is intentional — SOPS requires the
+  # key string to start on the line after the key name.
+  - path_regex: clusters/homelab/.*\.sops\.yaml
+    age: >-
+      age13zf2gl0kqnajw9g22qxfx6h80qkgl00m8t8akk6cqfj9s2xwx4ps8jlvzn

@@ -1,0 +1,26 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: vaultwarden
+  namespace: flux-system
+spec:
+  # Suspended initially. Resume only after:
+  #   1. Flux bootstrap is complete.
+  #   2. The sops-age Secret exists in flux-system.
+  #   3. vaultwarden-secrets.sops.yaml is encrypted and committed.
+  #   4. The vaultwarden namespace PVC is provisionable.
+  suspend: true
+  interval: 10m0s
+  path: ./infrastructure/vaultwarden
+  prune: true
+  wait: true
+  timeout: 5m0s
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  # SOPS decryption: uses the same sops-age Secret as aitrade-flux.
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age

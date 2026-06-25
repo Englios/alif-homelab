@@ -1,0 +1,10 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vaultwarden
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    # The NetworkPolicy in this directory restricts ingress further.
+    # Pods that need to reach Vaultwarden must carry this label:
+    #   app.kubernetes.io/part-of: vaultwarden-access
