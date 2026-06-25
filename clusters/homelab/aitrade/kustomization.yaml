@@ -6,7 +6,7 @@ resources:
   - image-repository.yaml
   - image-policy.yaml
   - image-automation.yaml
-  - ../secrets/aitrade-auth.sops.yaml
+  - aitrade-auth.sops.yaml
 
 # TODO before resuming aitrade-flux:
 # 1. Copy clusters/homelab/secrets/aitrade-auth.sops.yaml.example to

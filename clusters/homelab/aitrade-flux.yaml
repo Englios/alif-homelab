@@ -11,7 +11,7 @@ spec:
   #   3. The aitrade-auth.sops.yaml file is encrypted and committed.
   suspend: true
   interval: 10m0s
-  path: ./clusters/homelab/aitrade
+  path: ./aitrade
   prune: true
   wait: true
   timeout: 5m0s
