@@ -15,6 +15,6 @@ creation_rules:
   # Encrypt all secret files in clusters/homelab/secrets/ with age.
   # The trailing newline before `age:` is intentional — SOPS requires the
   # key string to start on the line after the key name.
-  - path_regex: clusters/homelab/secrets/.*\.sops\.yaml
+  - path_regex: clusters/homelab/.*\.sops\.yaml
     age: >-
-      age1tx3typal8jw5j82hrcq0zml42us5ah093msnf7c78gtclemtev2sg08uvx
+      age13zf2gl0kqnajw9g22qxfx6h80qkgl00m8t8akk6cqfj9s2xwx4ps8jlvzn
