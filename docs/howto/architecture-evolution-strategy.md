@@ -18,43 +18,40 @@ This document outlines our planned evolution from simple app-level overlays to s
 ### **Structure**
 ```
 homelab-k8s/
-├── apps/
+├── apps/                    # Legacy/pre-GitOps manifests
 │   ├── minecraft-server/
-│   │   ├── deployment/           # Existing manifests (base)
-│   │   └── overlays/             # App-specific environments
-│   │       ├── dev/
-│   │       │   ├── kustomization.yaml
-│   │       │   ├── resource-patch.yaml
-│   │       │   ├── dns-patch.yaml
-│   │       │   └── idle-shutdown.yaml
-│   │       ├── prod/
-│   │       │   └── kustomization.yaml
-│   │       └── test/
-│   │           └── kustomization.yaml
-│   ├── web-portfolio/            # Future app
-│   └── monitoring/               # Future app
+│   │   └── deployment/           # Existing manifests (base)
+│   └── ...                        # Future apps should go to infrastructure/<name>/
+├── clusters/
+│   └── homelab/                  # Flux bootstrap root and cluster identity
+│       ├── aitrade/               # ai-trade Flux integration resources
+│       ├── secrets/               # SOPS-encrypted secrets
+│       ├── aitrade-flux.yaml      # Flux Kustomization for ai-trade
+│       ├── vaultwarden.yaml       # Flux Kustomization for vaultwarden
+│       └── node-labels.md         # Node pool placement strategy
+├── infrastructure/               # Native cluster service workload manifests (GitOps)
+│   ├── vaultwarden/              # Vaultwarden password manager
+│   ├── access/
+│   ├── bore-server/
+│   ├── gpu-feature-discovery/
+│   ├── keycloak/
+│   └── monitoring/
+└── docs/
 ```
 
 ### **Characteristics**
-- **Each app manages its own environments**
+- **apps/** is legacy/pre-GitOps — native services go to `infrastructure/<name>/`
+- **`clusters/homelab/`** is the Flux bootstrap path, not an app environment
 - **Simple to understand and implement**
 - **Good for learning Kustomize basics**
-- **Independent deployment per app**
 
-### **Deployment Commands**
-```bash
-# Deploy minecraft dev environment
-kubectl apply -k apps/minecraft-server/overlays/dev
-
-# Deploy minecraft prod environment  
-kubectl apply -k apps/minecraft-server/overlays/prod
-```
-
-### **Expected Pain Points** (Why we'll want to refactor)
-- **Duplication**: Similar patches across apps
-- **Environment inconsistency**: Hard to ensure all apps have same dev policies
-- **Operational complexity**: Must deploy each app separately
-- **Shared resources**: Difficult to manage cross-app dependencies
+### **Key Distinctions**
+| Path | Purpose | GitOps? |
+|------|---------|---------|
+| `apps/` | Legacy/pre-GitOps manifests (manual `kubectl apply`) | No |
+| `infrastructure/<name>/` | Native cluster service workload manifests | Yes (via Flux) |
+| `clusters/homelab/<name>.yaml` | Thin Flux Kustomizations pointing to infrastructure/ | Yes |
+| `clusters/homelab/aitrade/` | External-app Flux integration resources (manifests in own repo) | Yes |
 
 ---
 
@@ -63,36 +60,19 @@ kubectl apply -k apps/minecraft-server/overlays/prod
 ### **Target Structure**
 ```
 homelab-k8s/
-├── apps/                         # Application definitions (no overlays)
-│   ├── minecraft-server/
-│   │   └── deployment/           # Base manifests only
-│   ├── web-portfolio/
-│   │   └── deployment/
-│   └── monitoring/
-│       └── deployment/
-├── environments/                 # Environment-centric management
-│   ├── dev/
-│   │   ├── minecraft/
-│   │   │   ├── kustomization.yaml
-│   │   │   ├── resource-patch.yaml
-│   │   │   └── dns-patch.yaml
-│   │   ├── web/
-│   │   │   └── kustomization.yaml
-│   │   ├── monitoring/
-│   │   │   └── kustomization.yaml
-│   │   ├── shared/
-│   │   │   ├── namespace.yaml
-│   │   │   ├── resource-quotas.yaml
-│   │   │   └── network-policies.yaml
-│   │   └── kustomization.yaml     # Root environment config
-│   ├── prod/
-│   │   ├── minecraft/
-│   │   ├── web/
-│   │   ├── monitoring/
-│   │   ├── shared/
-│   │   └── kustomization.yaml
-│   └── test/
-│       └── ...
+├── apps/                         # Legacy/pre-GitOps manifests
+│   └── minecraft-server/
+│       └── deployment/           # Base manifests only
+├── clusters/
+│   └── homelab/                  # Flux bootstrap + cluster identity
+├── infrastructure/               # Native GitOps service manifests
+│   ├── vaultwarden/
+│   ├── monitoring/
+│   └── ...
+└── environments/                 # (Future) Environment-centric management
+    ├── dev/
+    ├── prod/
+    └── test/
 ```
 
 ### **Characteristics**
@@ -100,6 +80,14 @@ homelab-k8s/
 - **Shared policies**: Common settings across all apps in environment
 - **Operational simplicity**: Single command deploys everything
 - **GitOps-friendly**: Each environment is atomic unit
+
+> **Note (ai-trade Flux migration)**: The ai-trade Flux migration (see
+> `docs/plans/flux-move.md`) starts building the GitOps substrate under
+> `clusters/homelab/`. This runs ahead of Phase 2 — ai-trade gains Flux
+> management while native homelab workloads (minecraft-server in `apps/`,
+> etc.) remain manual `kubectl apply`. Once the model is proven, other
+> workloads can be folded into Flux under `infrastructure/<name>/` with
+> thin Flux Kustomizations in `clusters/homelab/`.
 
 ### **Deployment Commands**
 ```bash
@@ -190,6 +178,7 @@ rm -rf apps/*/overlays/
 - [ ] Namespace isolation
 - [ ] Basic CI/CD integration
 - [ ] Debugging overlay issues
+- [ ] Understanding cluster-identity vs environment layout
 
 ### **Phase 2 Skills**
 - [ ] Complex Kustomize hierarchies
@@ -216,6 +205,11 @@ rm -rf apps/*/overlays/
 ### **GitOps Patterns**
 - [ArgoCD Application Sets](https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/)
 - [Flux Multi-Environment](https://fluxcd.io/flux/guides/repository-structure/)
+
+### **Repo Structure**
+- [Node Labels](../clusters/homelab/node-labels.md) — Node pool placement strategy (control-plane uses `system`)
+- [Makefile.cluster](../Makefile.cluster) — SSH-proxied `make flux-*` targets for any device
+- [Flux Move Plan](../plans/flux-move.md) — ai-trade Flux migration decision log
 
 ---
 
@@ -253,6 +247,7 @@ rm -rf apps/*/overlays/
 - Builds foundational understanding without complexity
 - Allows learning from real pain points vs theoretical ones
 - Practices architectural evolution (essential DevOps skill)
+- Clear separation: `apps/` (legacy), `infrastructure/<name>/` (GitOps), `clusters/homelab/` (Flux identity)
 
 **Why Refactor Later:**
 - Environment-level thinking emerges naturally from operational needs
@@ -263,3 +258,18 @@ rm -rf apps/*/overlays/
 - Experience both patterns deeply
 - Understand trade-offs through practice
 - Build confidence in architectural decision-making 
+
+## Appendix: Layout Rationale
+
+The repo uses three distinct "zones" for workload manifests:
+
+| Zone | Path | How applied | Example |
+|------|------|-------------|---------|
+| Legacy | `apps/` | Manual `kubectl apply` | Minecraft server |
+| Native GitOps | `infrastructure/<name>/` | Flux Kustomization from `clusters/homelab/<name>.yaml` | Vaultwarden |
+| External GitOps | `clusters/homelab/<name>/` (Flux integration only) | Flux Kustomization, points to external repo | ai-trade |
+
+This means:
+- **apps/** will shrink over time as services migrate to `infrastructure/<name>/`
+- **infrastructure/** contains the actual Kubernetes manifests for native services
+- **clusters/homelab/** stays thin — just Flux bootstrap, thin Kustomizations, and SOPS secrets

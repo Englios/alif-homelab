@@ -10,6 +10,18 @@
 
 **/gpu-feature-discovery
 
+# --- Secret / key exclusions ---
+*.agekey
+age.key
+*.dec.yaml
+*.decrypted.yaml
+old-flux-system-secret.yaml
+aitrade-deploykey*
+
+# Keep encrypted SOPS files trackable via version control
+!**/*.sops.yaml
+!**/*.enc.yaml
+
 kubeconfig
 *.kubeconfig
 .jj/

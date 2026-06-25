@@ -1,0 +1,67 @@
+---
+# NetworkPolicy for Vaultwarden.
+#
+# Ingress: Only pods carrying the label
+#   app.kubernetes.io/part-of: vaultwarden-access
+# may connect to Vaultwarden. This is intended for a Tailscale sidecar,
+# an nginx reverse-proxy, or a monitoring pod that has been explicitly
+# labeled.  All other inbound traffic is denied.
+#
+# Egress: DNS (UDP 53) and HTTPS (TCP 443) are allowed for outbound
+# icon fetching and optional SMTP.  All other outbound is denied.
+#
+# NOTE: The kube-dns / CoreDNS service IP may differ per cluster.
+# The rule below uses a numeric port and a broad destination selector
+# to cover the standard cluster DNS service.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vaultwarden
+  namespace: vaultwarden
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: vaultwarden
+      app.kubernetes.io/instance: vaultwarden
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: vaultwarden-access
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 3012
+  egress:
+    # DNS resolution (kube-dns / CoreDNS)
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+    # Outbound HTTPS for icon fetching / SMTP
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443
+    # Allow traffic within the namespace for probes / communication
+    - to:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 3012

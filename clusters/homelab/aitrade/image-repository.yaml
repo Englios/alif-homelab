@@ -1,0 +1,22 @@
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: aitrade
+  namespace: flux-system
+spec:
+  image: ghcr.io/englios/aitrade
+  interval: 10m0s
+  provider: generic
+  # Docker registry credentials for GHCR.
+  # The ghcr-pull Secret must exist in the flux-system namespace.
+  # Create it with:
+  #   kubectl -n flux-system create secret docker-registry ghcr-pull \
+  #     --docker-server=ghcr.io --docker-username=Englios \
+  #     --docker-password=<PAT-with-read-packages-scope>
+  secretRef:
+    name: ghcr-pull
+  accessFrom:
+    namespaceSelectors:
+      - matchLabels:
+          kubernetes.io/metadata.name: flux-system

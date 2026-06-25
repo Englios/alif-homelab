@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  # Cluster-level Flux Kustomizations. These are created suspended, so they are
+  # safe to apply as part of the bootstrap root before cutover.
+  - aitrade-flux.yaml
+  - vaultwarden.yaml
+
+# Flux bootstrap will add generated Flux manifests to this root. Depending on
+# the Flux CLI version, it may either append flat gotk-*.yaml files here or
+# create a flux-system/ directory.
+#
+# After bootstrap, run:
+#   kubectl kustomize clusters/homelab --load-restrictor LoadRestrictionsNone
+#
+# If generated gotk-*.yaml files appear flat in clusters/homelab/, verify they
+# are listed above. If bootstrap creates clusters/homelab/flux-system/, add:
+#   - flux-system

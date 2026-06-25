@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: vaultwarden
+resources:
+  - namespace.yaml
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml
+  - networkpolicy.yaml
+  - backup-cronjob.yaml
+patches:
+  - path: patches/deployment-node-selector.yaml
+
+# TODO before resuming the vaultwarden Flux Kustomization:
+# 1. Copy clusters/homelab/secrets/vaultwarden-secrets.sops.yaml.example to
+#    clusters/homelab/secrets/vaultwarden-secrets.sops.yaml.
+# 2. Replace placeholders with real ADMIN_TOKEN and DOMAIN values.
+# 3. Encrypt with: sops --encrypt --in-place clusters/homelab/secrets/vaultwarden-secrets.sops.yaml
+# 4. Add the encrypted file to this resources list:
+#      - ../../clusters/homelab/secrets/vaultwarden-secrets.sops.yaml
+#
+# The real encrypted Secret is intentionally not referenced while it does not
+# exist, so repo-only `kubectl kustomize` validation remains green.

@@ -1,0 +1,28 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: aitrade-flux
+  namespace: flux-system
+spec:
+  # Suspended initially. Resume only after:
+  #   1. Flux bootstrap is complete.
+  #   2. The sops-age Secret exists in flux-system.
+  #   3. The aitrade-auth.sops.yaml file is encrypted and committed.
+  suspend: true
+  interval: 10m0s
+  path: ./clusters/homelab/aitrade
+  prune: true
+  wait: true
+  timeout: 5m0s
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  # SOPS decryption: the sops-age Secret must contain the age private key
+  # in the format expected by the Flux SOPS provider:
+  #   kubectl -n flux-system create secret generic sops-age \
+  #     --from-file=age.agekey=<path-to-age-key>
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age

@@ -12,6 +12,8 @@ A self-hosted Kubernetes environment for homelab computing, gaming, and learning
 | **Minecraft Server** | Modded Java Edition with friends |
 | **Headless WOL** | Remote boot/maintain a gaming PC via homelab |
 | **VPN Access** | Tailscale for secure remote access |
+| **Vaultwarden** | Self-hosted Bitwarden-compatible password manager (suspended, ClusterIP-only, no public ingress) |
+| **GitOps / Flux** | Flux manages **ai-trade** and **Vaultwarden** (both migration scaffolding, both suspended); native homelab workloads remain manual for now |
 
 ---
 
@@ -57,14 +59,28 @@ wol-pc status
 
 ```md
 homelab-k8s/
-├── apps/              # Kubernetes manifests
+├── apps/               # Legacy/pre-GitOps Kubernetes manifests
 │   └── minecraft-server/
-├── scripts/           # Helper scripts (wol-pc, etc.)
-├── docs/
-│   ├── guides/       # How-to tutorials
-│   ├── howto/        # Technical reference
-│   └── plans/        # Internal runbooks
-└── infrastructure/   # Core configs
+├── clusters/           # Flux bootstrap root and cluster identity
+│   └── homelab/        # Physical/logical k3s cluster identity
+│       ├── aitrade/          # ai-trade Flux integration resources
+│       ├── secrets/          # SOPS-encrypted secrets
+│       ├── aitrade-flux.yaml # Flux Kustomization for ai-trade
+│       ├── vaultwarden.yaml  # Flux Kustomization for vaultwarden
+│       └── node-labels.md    # Node placement documentation
+├── infrastructure/     # Native cluster service workload manifests
+│   ├── vaultwarden/    # Vaultwarden password manager
+│   ├── access/         # Access control resources
+│   ├── bore-server/    # Bore tunnel server
+│   ├── gpu-feature-discovery/
+│   ├── keycloak/       # OIDC identity provider
+│   └── monitoring/     # Cluster monitoring stack
+├── scripts/            # Helper scripts (wol-pc, etc.)
+└── docs/               # Documentation
+    ├── guides/
+    ├── howto/
+    ├── plans/
+    └── runbooks/
 ```
 
 ---
@@ -74,6 +90,12 @@ homelab-k8s/
 - **[Guides](./docs/guides/)** — Step-by-step tutorials
 - **[Headless WOL](./docs/guides/headless-wol-overview.md)** — Remote boot gaming PC
 - **[k3s Setup](./docs/guides/k3s-setup.md)** — Cluster configuration
+- **[Flux Setup](./docs/guides/flux-setup.md)** — Flux bootstrap and SOPS setup
+- **[SOPS Secrets](./docs/howto/sops-secrets.md)** — Encrypted secret management
+- **[Flux Cutover](./docs/runbooks/flux-cutover.md)** — Staged ai-trade Flux migration
+- **[Vaultwarden Runbook](./docs/runbooks/vaultwarden.md)** — Password manager setup and ops
+- **[Flux Move Plan](./docs/plans/flux-move.md)** — Decision log and architecture
+- **[Node Labels](./clusters/homelab/node-labels.md)** — Node pool placement strategy
 
 ---
 

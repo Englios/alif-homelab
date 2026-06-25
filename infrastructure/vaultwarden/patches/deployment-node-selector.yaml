@@ -1,0 +1,15 @@
+# Patch Vaultwarden to land on the homelab `system` node pool.
+#
+# IMPORTANT: Apply the labels on the node(s) BEFORE resuming the
+# vaultwarden Kustomization. See `clusters/homelab/node-labels.md`.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vaultwarden
+  namespace: vaultwarden
+spec:
+  template:
+    spec:
+      nodeSelector:
+        homelab.englios.dev/node-pool: system

@@ -1,0 +1,28 @@
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageUpdateAutomation
+metadata:
+  name: aitrade
+  namespace: flux-system
+spec:
+  # Suspended initially. Resume only after the full cutover is verified
+  # and ai-trade is running under Flux control.
+  suspend: true
+  interval: 10m0s
+  sourceRef:
+    kind: GitRepository
+    name: aitrade
+  git:
+    checkout:
+      ref:
+        branch: master
+    commit:
+      author:
+        email: flux@aitrade.local
+        name: flux-image-bot
+      messageTemplate: "ci(image): update aitrade to {{ (index .Changed.Changes 0).NewValue }}"
+    push:
+      branch: master
+  update:
+    strategy: Setters
+    path: .kube/overlays/prod/kustomization.yaml

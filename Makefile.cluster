@@ -1,0 +1,57 @@
+# Companion Makefile for SSH-proxied cluster commands.
+# `include` from the repo root Makefile, or invoke directly with `make -f Makefile.cluster <target>`.
+#
+# All targets shell out to the homelab control-plane node over SSH so they
+# can be run from any device that has SSH access. This keeps the kubeconfig
+# and Flux CLI usage on the homelab node, never on laptops.
+
+HOMELAB_HOST ?= homelab
+REMOTE_KUBECONFIG ?= ~/.kube/config
+
+.PHONY: help
+help:  ## list available targets
+	@awk 'BEGIN{FS=":.*##"} /^[a-zA-Z_-]+:.*##/ {printf "  %-26s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+
+.PHONY: flux-status
+flux-status:  ## run `flux get all -A` on the homelab node
+	ssh $(HOMELAB_HOST) 'cd ~/Codes/homelab-k8s && flux get all -A'
+
+.PHONY: flux-sources
+flux-sources:  ## run `flux get sources git -A` on the homelab node
+	ssh $(HOMELAB_HOST) 'cd ~/Codes/homelab-k8s && flux get sources git -A'
+
+.PHONY: flux-kustomizations
+flux-kustomizations:  ## run `flux get kustomizations -A` on the homelab node
+	ssh $(HOMELAB_HOST) 'cd ~/Codes/homelab-k8s && flux get kustomizations -A'
+
+.PHONY: flux-images
+flux-images:  ## run `flux get images all -A` on the homelab node
+	ssh $(HOMELAB_HOST) 'cd ~/Codes/homelab-k8s && flux get images all -A'
+
+.PHONY: flux-reconcile-aitrade
+flux-reconcile-aitrade:  ## force reconcile aitrade-prod on the homelab node
+	ssh $(HOMELAB_HOST) 'cd ~/Codes/homelab-k8s && flux reconcile kustomization aitrade-prod --with-source'
+
+.PHONY: flux-suspend-aitrade
+flux-suspend-aitrade:  ## suspend aitrade Kustomization on the homelab node
+	ssh $(HOMELAB_HOST) 'cd ~/Codes/homelab-k8s && flux suspend kustomization aitrade-prod'
+
+.PHONY: flux-resume-aitrade
+flux-resume-aitrade:  ## resume aitrade Kustomization on the homelab node
+	ssh $(HOMELAB_HOST) 'cd ~/Codes/homelab-k8s && flux resume kustomization aitrade-prod'
+
+.PHONY: flux-resume-vaultwarden
+flux-resume-vaultwarden:  ## resume vaultwarden Kustomization on the homelab node
+	ssh $(HOMELAB_HOST) 'cd ~/Codes/homelab-k8s && flux resume kustomization vaultwarden'
+
+.PHONY: kubectl-get
+kubectl-get:  ## run `kubectl get all -A` on the homelab node
+	ssh $(HOMELAB_HOST) 'kubectl get all -A'
+
+.PHONY: kubectl-tail-aitrade
+kubectl-tail-aitrade:  ## tail logs of aitrade-telegram on the homelab node
+	ssh -t $(HOMELAB_HOST) 'kubectl -n aitrade-prod logs -f deploy/aitrade-telegram'
+
+.PHONY: node-list
+node-list:  ## show nodes and pool labels on the homelab node
+	ssh $(HOMELAB_HOST) 'kubectl get nodes --show-labels | tr " " "\n" | grep -E "^(NAME|homelab\\.englios\\.dev/)" || kubectl get nodes -o custom-columns=NAME:.metadata.name,POOL:.metadata.labels.homelab\\.englios\\.dev/node-pool'
