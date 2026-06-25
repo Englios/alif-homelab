@@ -25,3 +25,8 @@ aitrade-deploykey*
 kubeconfig
 *.kubeconfig
 .jj/
+
+# BEGIN oh-my-opencode-slim worktrees + deepwork
+.slim/
+.slim/worktrees.json
+# END oh-my-opencode-slim worktrees + deepwork
