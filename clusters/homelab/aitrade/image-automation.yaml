@@ -5,9 +5,9 @@ metadata:
   name: aitrade
   namespace: flux-system
 spec:
-  # Suspended initially. Resume only after the full cutover is verified
-  # and ai-trade is running under Flux control.
-  suspend: true
+  # Live: image automation is active. Tag bumps from the ImagePolicy
+  # flow into ai-trade master via the Setters strategy on the prod overlay.
+  suspend: false
   interval: 10m0s
   sourceRef:
     kind: GitRepository

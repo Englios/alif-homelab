@@ -5,11 +5,10 @@ metadata:
   name: aitrade-flux
   namespace: flux-system
 spec:
-  # Suspended initially. Resume only after:
-  #   1. Flux bootstrap is complete.
-  #   2. The sops-age Secret exists in flux-system.
-  #   3. The aitrade-auth.sops.yaml file is encrypted and committed.
-  suspend: true
+  # Live: applied by the homelab-managed Flux on the homelab cluster.
+  # Initial cutover was completed; the suspend flag is removed so future
+  # ai-trade master commits are picked up automatically.
+  suspend: false
   interval: 10m0s
   path: ./aitrade
   prune: true
