@@ -1,11 +1,17 @@
 # Flux Cutover Runbook — ai-trade Migration
 
-> **Status**: Planning / Not yet executed.
->
-> This runbook describes the staged cutover of ai-trade from its current
-> Flux setup (in the ai-trade repo) to the new Flux setup managed from
-> homelab-k8s. All resources have been pre-created with `suspend: true`
-> to prevent premature reconciliation.
+> **Status**: Cutover complete. Runbook kept for the actual flow that
+> worked and as a reference for future cluster re-provisioning.
+
+## Post-cutover notes
+
+- `Secret/sops-age` and `Secret/ghcr-pull` were applied out-of-band
+  during cutover and remain in the cluster only. They are not yet in
+  the repo. The plan is to move them into Vaultwarden when Vaultwarden
+  is brought up; see `docs/runbooks/vaultwarden.md` and follow-up issue.
+- `Kustomization/aitrade-flux`, `Kustomization/aitrade-prod`, and
+  `ImageUpdateAutomation/aitrade` are now `suspend: false` in the repo
+  to match the cluster.
 
 ## Prerequisites
 
