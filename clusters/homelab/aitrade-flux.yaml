@@ -8,9 +8,10 @@ spec:
   # Live: applied by the homelab-managed Flux on the homelab cluster.
   # Initial cutover was completed; the suspend flag is removed so future
   # ai-trade master commits are picked up automatically.
+  # Path is relative to the GitRepository root (not the parent Kustomization).
   suspend: false
   interval: 10m0s
-  path: ./aitrade
+  path: ./clusters/homelab/aitrade
   prune: true
   wait: true
   timeout: 5m0s
