@@ -26,6 +26,12 @@ spec:
   values:
     operatorConfig:
       hostname: tailscale-operator
+      # Override the chart's default of 'tag:k8s-operator' to match the
+      # OAuth client's tag (tag:k8s). The operator creates auth keys
+      # with this tag; the OAuth client must own the tag or the
+      # Tailscale API returns 403 on the auth-key creation call.
+      defaultTags:
+        - tag:k8s
   valuesFrom:
     - kind: Secret
       name: operator-oauth
