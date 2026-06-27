@@ -4,11 +4,18 @@ kind: Kustomization
 #   - Namespace (no metadata.namespace; cluster-scoped)
 #   - HelmRepository/tailscale         -> metadata.namespace: flux-system
 #   - HelmRelease/tailscale-operator   -> metadata.namespace: tailscale
+#   - Secret/operator-oauth            -> metadata.namespace: tailscale
 # A kustomize 'namespace:' override here would force the HelmRepository
 # into the tailscale namespace too, which breaks the HelmRelease's
 # sourceRef resolution (helm-controller looks for the HelmRepository
 # in flux-system).
+#
+# The encrypted Secret is included here so Flux creates it in the cluster
+# alongside the HelmRelease that references it via valuesFrom. The
+# decryption.secretRef (sops-age) on the parent Flux Kustomization
+# decrypts this file at apply time.
 resources:
   - namespace.yaml
   - helmrepository.yaml
   - helmrelease.yaml
+  - ../../clusters/homelab/secrets/operator-oauth.sops.yaml
