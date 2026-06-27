@@ -12,7 +12,6 @@ using age key encryption. Files ending in `.sops.yaml` are encrypted; see the
 | `aitrade-auth.sops.yaml.example` | **Example only** — copy to `aitrade-auth.sops.yaml`, fill in real key, encrypt |
 | `vaultwarden-secrets.sops.yaml` | ADMIN_TOKEN, DOMAIN, and optional SMTP config for Vaultwarden |
 | `vaultwarden-secrets.sops.yaml.example` | **Example only** — copy to `vaultwarden-secrets.sops.yaml`, fill in real values, encrypt |
-| `tailscale-operator-auth.sops.yaml.example` | **Example only, deprecated** — old TS_AUTH_KEY approach, superseded by OAuth (see operator-oauth) |
 | `operator-oauth.sops.yaml` | OAuth client_id + client_secret for the Tailscale Kubernetes Operator |
 
 ## Usage
