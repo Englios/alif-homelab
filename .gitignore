@@ -27,6 +27,9 @@ kubeconfig
 .jj/
 
 # BEGIN oh-my-opencode-slim worktrees + deepwork
-.slim/
-.slim/worktrees.json
+# Worktree state files stay local; deepwork drafts ARE tracked in git so
+# the planning state for upcoming work is versioned alongside the repo.
+.slim/*
+.slim/deepwork/
+.slim/deepwork/**
 # END oh-my-opencode-slim worktrees + deepwork
