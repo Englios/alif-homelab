@@ -1,0 +1,11 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: tailscale
+  namespace: flux-system
+spec:
+  type: oci
+  url: oci://ghcr.io/tailscale/helm-charts
+  interval: 24h
+  provider: generic

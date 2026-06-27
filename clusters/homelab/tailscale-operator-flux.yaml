@@ -1,0 +1,26 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: tailscale-operator
+  namespace: flux-system
+spec:
+  # Suspended initially. Resume only after:
+  #   1. The encrypted Secret/tailscale-operator-auth is in place (done).
+  #   2. A dry-run reconcile has been performed and any chart / kustomize
+  #      errors resolved.
+  #   3. The Tailscale auth key tag ('tag:k8s') is permitted by the
+  #      tailnet ACL.
+  suspend: true
+  interval: 30m
+  path: ./infrastructure/tailscale-operator
+  prune: true
+  wait: true
+  timeout: 10m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age

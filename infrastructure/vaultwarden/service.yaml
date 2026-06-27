@@ -7,6 +7,12 @@ metadata:
   labels:
     app.kubernetes.io/name: vaultwarden
     app.kubernetes.io/instance: vaultwarden
+  annotations:
+    # Tailscale Kubernetes Operator picks this Service up and creates
+    # a Tailscale device with MagicDNS name 'vaultwarden' (or the
+    # override below). The default hostname matches the Service name.
+    tailscale.com/expose: "true"
+    tailscale.com/hostname: "vaultwarden"
 spec:
   type: ClusterIP
   ports:

@@ -1,11 +1,13 @@
 ---
 # NetworkPolicy for Vaultwarden.
 #
-# Ingress: Only pods carrying the label
-#   app.kubernetes.io/part-of: vaultwarden-access
-# may connect to Vaultwarden. This is intended for a Tailscale sidecar,
-# an nginx reverse-proxy, or a monitoring pod that has been explicitly
-# labeled.  All other inbound traffic is denied.
+# Ingress:
+#   - Pods labeled `app.kubernetes.io/part-of: vaultwarden-access`
+#     (a manually labeled in-cluster proxy, smoke-test pod, etc.).
+#   - The Tailscale Kubernetes Operator's proxy pod, in the `tailscale`
+#     namespace, labeled `app.kubernetes.io/name: tailscale-operator`.
+#     This is the path used for production Tailscale access.
+# All other inbound traffic is denied.
 #
 # Egress: DNS (UDP 53) and HTTPS (TCP 443) are allowed for outbound
 # icon fetching and optional SMTP.  All other outbound is denied.
@@ -27,6 +29,7 @@ spec:
     - Ingress
     - Egress
   ingress:
+    # In-cluster access via the vaultwarden-access part-of label
     - from:
         - podSelector:
             matchLabels:
@@ -36,6 +39,16 @@ spec:
           port: 80
         - protocol: TCP
           port: 3012
+    # Tailscale Kubernetes Operator proxy pod (production access)
+    - from:
+        - namespaceSelector:
+            matchNames: [tailscale]
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: tailscale-operator
+      ports:
+        - protocol: TCP
+          port: 80
   egress:
     # DNS resolution (kube-dns / CoreDNS)
     - to:

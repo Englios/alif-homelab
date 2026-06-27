@@ -5,6 +5,7 @@ resources:
   # safe to apply as part of the bootstrap root before cutover.
   - aitrade-flux.yaml
   - vaultwarden.yaml
+  - tailscale-operator-flux.yaml
 
 # Flux bootstrap will add generated Flux manifests to this root. Depending on
 # the Flux CLI version, it may either append flat gotk-*.yaml files here or
