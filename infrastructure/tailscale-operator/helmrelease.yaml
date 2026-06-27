@@ -9,10 +9,10 @@ spec:
   chart:
     spec:
       chart: tailscale-operator
-      version: ">=1.98.0 <2.0.0"
+      version: "1.98.4"
       sourceRef:
         kind: HelmRepository
-        name: tailscale
+        name: ts-charts
         namespace: flux-system
   interval: 30m
   install:
