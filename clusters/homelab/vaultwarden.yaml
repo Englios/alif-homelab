@@ -5,12 +5,18 @@ metadata:
   name: vaultwarden
   namespace: flux-system
 spec:
-  # Suspended initially. Resume only after:
-  #   1. Flux bootstrap is complete.
-  #   2. The sops-age Secret exists in flux-system.
-  #   3. vaultwarden-secrets.sops.yaml is encrypted and committed.
-  #   4. The vaultwarden namespace PVC is provisionable.
-  suspend: true
+  # Prereqs (all confirmed):
+  #   1. Flux bootstrap complete (sops-age Secret in flux-system).
+  #   2. vaultwarden-secrets.sops.yaml encrypted and committed.
+  #   3. node-pool=system label applied to the Debian control plane.
+  #   4. Tailscale Kubernetes Operator running, registered, and able to
+  #      provision devices. Vaultwarden's Service carries the
+  #      tailscale.com/expose annotation, so the operator will create a
+  #      Tailscale device for it on first reconcile.
+  # After this commit, the kustomize-controller will create the
+  # namespace, PVC, Deployment, Service, NetworkPolicy, and CronJob,
+  # and the Tailscale operator will expose the Service.
+  suspend: false
   interval: 10m0s
   path: ./infrastructure/vaultwarden
   prune: true
