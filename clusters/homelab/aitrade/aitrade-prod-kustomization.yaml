@@ -5,10 +5,14 @@ metadata:
   name: aitrade-prod
   namespace: flux-system
 spec:
-  # Suspended until the staged cutover is complete.
-  # Resume only after verifying the aitrade GitRepository clones
-  # successfully and the control Kustomization (aitrade-flux) is healthy.
-  suspend: true
+  # Resumed 2026-06-27. Flux now deploys every new aitrade release:
+  #   - aitrade GitRepository polls aitrade master on its 1m interval
+  #   - When the revision changes, this Kustomization reconciles
+  #   - path: ./.kube/overlays/prod contains the production manifests
+  # interval is 5m so we're never more than 5 min behind a release.
+  # If a release needs faster rollout, run:
+  #   flux reconcile kustomization aitrade-prod
+  suspend: false
   interval: 5m0s
   path: ./.kube/overlays/prod
   prune: true
