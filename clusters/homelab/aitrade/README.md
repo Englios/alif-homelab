@@ -9,7 +9,7 @@ system workload. The workload manifests themselves live in the
 
 | File | Kind | Purpose |
 |------|------|---------|
-| `gitrepository.yaml` | GitRepository | Points to ai-trade repo, authenticated via `aitrade-auth` deploy key |
+| `gitrepository.yaml` | GitRepository | Points to ai-trade repo, authenticated via `aitrade-auth` SSH deploy key |
 | `aitrade-prod-kustomization.yaml` | Kustomization | Syncs `./.kube/overlays/prod` from ai-trade into the cluster |
 | `image-repository.yaml` | ImageRepository | Scans ghcr.io/englios/aitrade for new tags |
 | `image-policy.yaml` | ImagePolicy | Semver policy (`>=0.0.0`) for automated updates |
@@ -24,8 +24,12 @@ system workload. The workload manifests themselves live in the
 - **Suspended initially**: All Flux resources are created with
   `spec.suspend: true`. Cutover is manually staged. See
   `docs/runbooks/flux-cutover.md`.
-- **Secrets**: The deploy key (`aitrade-auth`) is encrypted with SOPS/age.
-  See `docs/howto/sops-secrets.md`.
+- **Secrets**: The SSH deploy key (`aitrade-auth`) is encrypted with
+  SOPS/age. The GitRepository uses SSH URL
+  (`ssh://git@github.com/Englios/ai-trade.git`) so Flux authenticates
+  via the `identity` / `identity.pub` / `known_hosts` fields in the
+  Secret. The key must be write-enabled for ImageUpdateAutomation to push
+  tag-bump commits. See `docs/howto/sops-secrets.md`.
 - **Image automation**: `ImageUpdateAutomation` uses sourceRef `aitrade`
   (the GitRepository, not `flux-system`), and pushes tag bumps back to
   the ai-trade repo `master` branch.
@@ -37,7 +41,10 @@ Before these resources can be reconciled:
 1. Flux must be bootstrapped into the cluster (see `docs/guides/flux-setup.md`).
 2. The `sops-age` Secret must exist in the `flux-system` namespace
    (contains the age private key for SOPS decryption).
-3. `clusters/homelab/secrets/aitrade-auth.sops.yaml` must be generated
-   (copy the example, replace with real deploy key, encrypt with SOPS).
+3. `clusters/homelab/aitrade/aitrade-auth.sops.yaml` must exist and be
+   encrypted with the correct SSH deploy key values. To create for the
+   first time, copy from the example at
+   `clusters/homelab/secrets/aitrade-auth.sops.yaml.example`, replace
+   placeholders, and encrypt with SOPS.
 4. The `ghcr-pull` docker-registry Secret must exist in `flux-system`
    (for ImageRepository to authenticate with GHCR).

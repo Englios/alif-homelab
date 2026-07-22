@@ -8,13 +8,25 @@ resources:
   - image-automation.yaml
   - aitrade-auth.sops.yaml
 
-# TODO before resuming aitrade-flux:
-# 1. Copy clusters/homelab/secrets/aitrade-auth.sops.yaml.example to
-#    clusters/homelab/secrets/aitrade-auth.sops.yaml.
-# 2. Replace placeholders with the real ai-trade deploy key Secret.
-# 3. Encrypt with: sops --encrypt --in-place clusters/homelab/secrets/aitrade-auth.sops.yaml
-# 4. Add the encrypted file to this resources list:
-#      - ../secrets/aitrade-auth.sops.yaml
+# The encrypted Secret (aitrade-auth.sops.yaml, line 9 above) is the live
+# file committed to this directory.  The plain-text template lives under
+# ../secrets/aitrade-auth.sops.yaml.example — copy content from there when
+# editing the live file, but NEVER commit unencrypted secrets.
 #
-# The real encrypted Secret is intentionally not referenced while it does not
-# exist, so repo-only `kubectl kustomize` validation remains green.
+# The Secret contains an SSH deploy key (write-enabled) for the ai-trade
+# repo.  Key fields (all base64-encoded in `data`):
+#   - identity       — SSH private key (PEM)
+#   - identity.pub   — SSH public key
+#   - known_hosts    — github.com host fingerprint from ssh-keyscan
+#
+# Optional fields (omitted = Flux uses defaults):
+#   - username       — default "git" when absent; only set for non-GitHub hosts
+#   - password       — only needed for passphrase-protected private keys
+#
+# The GitRepository URL is ssh://git@github.com/Englios/ai-trade.git.
+# No provider field is set — Flux uses the SSH key in the Secret to
+# authenticate when cloning.  The same key pushes tag-bump commits for
+# ImageUpdateAutomation, so write access is required.
+#
+# See clusters/homelab/secrets/aitrade-auth.sops.yaml.example for the full
+# template with placeholder values, creation steps, and rotation procedure.

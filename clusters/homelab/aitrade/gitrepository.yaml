@@ -10,4 +10,4 @@ spec:
     branch: master
   secretRef:
     name: aitrade-auth
-  url: https://github.com/Englios/ai-trade.git
+  url: ssh://git@github.com/Englios/ai-trade.git

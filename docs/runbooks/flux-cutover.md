@@ -18,7 +18,7 @@
 Before starting the cutover, confirm:
 
 - [ ] Flux is bootstrapped into the cluster from homelab-k8s.
-- [ ] `clusters/homelab/secrets/aitrade-auth.sops.yaml` exists and is encrypted.
+- [ ] `clusters/homelab/aitrade/aitrade-auth.sops.yaml` exists and is encrypted.
 - [ ] The `sops-age` Secret exists in `flux-system` with the correct age key.
 - [ ] The `ghcr-pull` Secret exists in `flux-system` (for ImageRepository).
 - [ ] You have `kubectl` and `flux` CLI access to the cluster.
@@ -82,7 +82,7 @@ git push
 ### 0.3 Verify the encrypted deploy key is committed
 
 ```bash
-sops filestatus clusters/homelab/secrets/aitrade-auth.sops.yaml
+sops filestatus clusters/homelab/aitrade/aitrade-auth.sops.yaml
 ```
 
 If this fails, re-encrypt the file or check the age key.
@@ -148,6 +148,13 @@ Should output `True`. If `False`, check the deploy key and secretRef:
 kubectl -n flux-system describe gitrepository aitrade
 kubectl -n flux-system get secret aitrade-auth
 ```
+
+The GitRepository uses `url: ssh://git@github.com/Englios/ai-trade.git`
+(no `provider` field), so the `aitrade-auth` Secret must contain the SSH
+deploy key fields: `identity` (private key), `identity.pub` (public key),
+and `known_hosts` (GitHub host fingerprint), all base64-encoded under
+`data`. If the key was recently rotated, confirm the updated encrypted
+file has been pushed and reconciled.
 
 ## Stage 2: Verify Image Automation
 
@@ -299,5 +306,17 @@ After successful cutover:
   `aitrade-flux` control Kustomization.
 - ImageUpdateAutomation is initially suspended to prevent premature tag
   bumps. Resume it only after confirming the workload is healthy.
-- If you need to update the deploy key, re-encrypt the secret file with
-  `sops --encrypt --in-place` and push.
+- SSH deploy-key rotation:
+  1. Generate a new key pair outside the repo with restricted permissions:
+     `(umask 077; ssh-keygen -t ed25519 -C "flux-aitrade-$(date +%F)" -f ~/.ssh/flux-aitrade)`
+  2. Add the new public key to GitHub Deploy keys (old key stays valid).
+  3. Edit the live encrypted file with SOPS (safe decrypt → edit → re-encrypt):
+     `sops clusters/homelab/aitrade/aitrade-auth.sops.yaml`
+     Replace `identity` and `identity.pub` with the new base64-encoded values.
+  4. Commit and push the updated encrypted file.
+  5. Tell Flux to re-read the Secret:
+     `flux reconcile source git aitrade`
+  6. Verify Flux can still clone:
+     `kubectl -n flux-system get gitrepository aitrade -o jsonpath='{.status.conditions[?(@.type=="Ready")].message}'`
+     Expect `"Fetched revision: ..."`.
+  7. Only after verification: remove the old deploy key from GitHub.
