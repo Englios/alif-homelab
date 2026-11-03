@@ -4,8 +4,7 @@
 # Ingress:
 #   - Pods labeled `app.kubernetes.io/part-of: vaultwarden-access`
 #     (a manually labeled in-cluster proxy, smoke-test pod, etc.).
-#   - The Tailscale Kubernetes Operator's proxy pod, in the `tailscale`
-#     namespace, labeled `app.kubernetes.io/name: tailscale-operator`.
+#   - Tailscale Ingress proxy pods in the `tailscale` namespace.
 #     This is the path used for production Tailscale access.
 # All other inbound traffic is denied.
 #
@@ -40,12 +39,11 @@ spec:
         - protocol: TCP
           port: 3012
     # Tailscale Kubernetes Operator proxy pod (production access)
+    # (Ingress proxy pods are created by the operator in this namespace.)
     - from:
         - namespaceSelector:
-            matchNames: [tailscale]
-          podSelector:
             matchLabels:
-              app.kubernetes.io/name: tailscale-operator
+              kubernetes.io/metadata.name: tailscale
       ports:
         - protocol: TCP
           port: 80

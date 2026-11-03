@@ -1,0 +1,20 @@
+---
+# HTTPS on the tailnet: https://vaultwarden.munchkin-komodo.ts.net
+# The Tailscale operator provisions the device and a Let's Encrypt cert
+# (HTTPS certificates are enabled for the tailnet). Bitwarden clients and the
+# web vault require HTTPS, so a plain tailscale.com/expose Service is not enough.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vaultwarden
+  namespace: vaultwarden
+spec:
+  ingressClassName: tailscale
+  defaultBackend:
+    service:
+      name: vaultwarden
+      port:
+        number: 80
+  tls:
+    - hosts:
+        - vaultwarden
