@@ -8,6 +8,9 @@ kind: Ingress
 metadata:
   name: vaultwarden
   namespace: vaultwarden
+  labels:
+    # Run the Tailscale proxy on debian (see infrastructure/tailscale-operator).
+    tailscale.com/proxy-class: system
 spec:
   ingressClassName: tailscale
   defaultBackend:

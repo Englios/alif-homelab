@@ -1,0 +1,15 @@
+---
+# Proxies for always-on services run on the system pool (debian).
+# Without this, the scheduler may place them on pop-os, a desktop worker that
+# sleeps; there, Service-expose (TCP) proxies also crash installing nftables
+# DNAT rules ("netlink receive: no such file or directory").
+# Opt in with the label  tailscale.com/proxy-class: system  on a Service or Ingress.
+apiVersion: tailscale.com/v1alpha1
+kind: ProxyClass
+metadata:
+  name: system
+spec:
+  statefulSet:
+    pod:
+      nodeSelector:
+        homelab.englios.dev/node-pool: system
