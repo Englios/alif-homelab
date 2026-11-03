@@ -1,0 +1,12 @@
+# Pin RustFS to the system pool (debian): the local-path volume lives there.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rustfs
+  namespace: object-storage
+spec:
+  template:
+    spec:
+      nodeSelector:
+        homelab.englios.dev/node-pool: system

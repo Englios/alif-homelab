@@ -6,6 +6,7 @@ resources:
   - aitrade-flux.yaml
   - vaultwarden.yaml
   - tailscale-operator-flux.yaml
+  - object-storage.yaml
 
 # Flux bootstrap will add generated Flux manifests to this root. Depending on
 # the Flux CLI version, it may either append flat gotk-*.yaml files here or
