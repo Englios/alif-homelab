@@ -1,0 +1,24 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: object-storage
+  namespace: flux-system
+spec:
+  # Shared S3-compatible storage (RustFS), reachable only over Tailscale.
+  # Depends on the Tailscale operator for tailnet exposure.
+  suspend: false
+  interval: 10m0s
+  path: ./infrastructure/object-storage
+  prune: true
+  wait: true
+  timeout: 5m0s
+  dependsOn:
+    - name: tailscale-operator
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age

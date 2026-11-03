@@ -1,0 +1,13 @@
+---
+# local-path volume on the node the pod is pinned to (system pool = debian).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rustfs-data
+  namespace: object-storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
