@@ -18,7 +18,7 @@ Shared S3-compatible object storage for homelab projects, managed by Flux via
 | Use | URL |
 |---|---|
 | S3 API | `http://s3.munchkin-komodo.ts.net:9000` |
-| Console | `http://s3.munchkin-komodo.ts.net:9001` |
+| Console | `http://s3.munchkin-komodo.ts.net:9001/rustfs/console/` |
 
 Use path-style addressing and any region string (e.g. `us-east-1`).
 
