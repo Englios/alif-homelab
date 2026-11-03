@@ -24,7 +24,7 @@ One shared, S3-compatible store on the homelab that any project can use with its
 - [x] Pin Tailscale proxies to `debian` (#16). Done when `s3` `/health` returns 200 over the tailnet (verified 2026-11-03).
 
 - [x] Root credentials copied into Vaultwarden (Alif, 2026-11-03).
-- [x] Onboard MEXT (2026-11-03): buckets `mext-state` and `mext-artifacts` (versioning on); policies `mext-hermes-rw` (`s3:*` on both) and `mext-laptop-ro` (read and list `mext-artifacts`); users `mext-hermes` and `mext-laptop`. Verified: each key reaches only its own buckets and neither can create buckets.
+- [x] Onboard MEXT (2026-11-03): one bucket `mext` (versioning on) with the prefixes `state/` and `artifacts/`. Policies: `mext-hermes-rw` (`s3:*` on `mext`) and `mext-laptop-ro` (list with an `s3:prefix` condition, read `mext/artifacts/*`). Users `mext-hermes` and `mext-laptop`. Verified: Hermes reads and writes both prefixes; the laptop reads only `artifacts/`; neither can create buckets.
 - [x] Tailnet reachability: `hermes-vm` and the laptop both reach `s3:9000`.
 
 ## Next
@@ -33,6 +33,10 @@ One shared, S3-compatible store on the homelab that any project can use with its
 2. [ ] Offsite copy (see `Backup_Plan.md`). Done before any bucket holds data that exists nowhere else.
 3. [ ] Monitoring: a health alert for RustFS and for volume usage.
 4. [ ] Upgrades: move to a newer RustFS release once it has been out for about two weeks; read the release notes for breaking changes.
+
+## Layout convention
+
+One bucket per project, with a prefix per kind of data (`<project>/<purpose>/…`). Scope keys with prefix policies (`s3:prefix` condition on `ListBucket`, a resource ARN `<bucket>/<prefix>/*` for objects). Prefixes cost nothing in performance.
 
 ## Onboarding without the console
 
@@ -48,4 +52,4 @@ There is no `mc` on the hosts. The admin API takes plain JSON over SigV4, so `cu
 
 | Project | Buckets | Users | Notes |
 |---|---|---|---|
-| MEXT planning (Hermes) | `mext-state`, `mext-artifacts` | `mext-hermes`, `mext-laptop` | Litestream for SQLite plus rclone for generated notes; the plan lives in the MEXT repo |
+| MEXT planning (Hermes) | `mext` (`state/`, `artifacts/`) | `mext-hermes` (rw), `mext-laptop` (read `artifacts/`) | Litestream for SQLite plus rclone for generated notes; the plan lives in the MEXT repo |

@@ -37,7 +37,7 @@ use in Vaultwarden once it is running.
 
 ## Onboarding a project
 
-Each project gets its own bucket(s), user and policy. Never hand out root keys.
+Each project gets one bucket, with a prefix per kind of data, plus its own users and policies. Never hand out root keys.
 
 ```bash
 mc alias set homelab http://s3.munchkin-komodo.ts.net:9000 <root-access> <root-secret>
@@ -68,7 +68,7 @@ Record each project's keys in Vaultwarden.
 
 | Project | Buckets | Users |
 |---|---|---|
-| MEXT planning (Hermes) | `mext-state`, `mext-artifacts` | `mext-hermes` (rw), `mext-laptop` (read `mext-artifacts`) |
+| MEXT planning (Hermes) | `mext` (`state/`, `artifacts/`) | `mext-hermes` (rw), `mext-laptop` (read `artifacts/`) |
 
 ## Notes
 
