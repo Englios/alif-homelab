@@ -24,19 +24,19 @@ One shared, S3-compatible store on the homelab that any project can use with its
 - [x] Pin Tailscale proxies to `debian` (#16). Done when `s3` `/health` returns 200 over the tailnet (verified 2026-11-03).
 
 - [x] Root credentials copied into Vaultwarden (Alif, 2026-11-03).
-- [x] Onboard MEXT (2026-11-03): one bucket `mext` (versioning on) with the prefixes `state/` and `artifacts/`. Policies: `mext-hermes-rw` (`s3:*` on `mext`) and `mext-laptop-ro` (list with an `s3:prefix` condition, read `mext/artifacts/*`). Users `mext-hermes` and `mext-laptop`. Verified: Hermes reads and writes both prefixes; the laptop reads only `artifacts/`; neither can create buckets.
+- [x] Onboard MEXT (2026-11-03): one bucket `mext` (versioning on) with the prefixes `state/` and `artifacts/`; one user `mext` with policy `mext-rw` (`s3:*` on `mext` only). The same key is on `hermes-vm` and the laptop. Verified from both: read, write and list work; creating other buckets is denied.
 - [x] Tailnet reachability: `hermes-vm` and the laptop both reach `s3:9000`.
 
 ## Next
 
-1. [ ] Copy the `mext-hermes` and `mext-laptop` keys into Vaultwarden. Working copies: `~/.config/mext-app/s3.env` (mode 600) on `hermes-vm` and on the laptop.
+1. [ ] Copy the `mext` key into Vaultwarden (needs Alif's master password). Working copies: `~/.config/mext-app/s3.env` (mode 600) on `hermes-vm` and on the laptop.
 2. [ ] Offsite copy (see `Backup_Plan.md`). Done before any bucket holds data that exists nowhere else.
 3. [ ] Monitoring: a health alert for RustFS and for volume usage.
 4. [ ] Upgrades: move to a newer RustFS release once it has been out for about two weeks; read the release notes for breaking changes.
 
 ## Layout convention
 
-One bucket per project, with a prefix per kind of data (`<project>/<purpose>/…`). Scope keys with prefix policies (`s3:prefix` condition on `ListBucket`, a resource ARN `<bucket>/<prefix>/*` for objects). Prefixes cost nothing in performance.
+One bucket per project, with a prefix per kind of data (`<project>/<purpose>/…`). Default to one user per project with `s3:*` on its own bucket; versioning is the safety net. Split keys with prefix policies (an `s3:prefix` condition on `ListBucket`, a resource ARN `<bucket>/<prefix>/*` for objects) only when a consumer really needs less access. Prefixes cost nothing in performance.
 
 ## Onboarding without the console
 
@@ -52,4 +52,4 @@ There is no `mc` on the hosts. The admin API takes plain JSON over SigV4, so `cu
 
 | Project | Buckets | Users | Notes |
 |---|---|---|---|
-| MEXT planning (Hermes) | `mext` (`state/`, `artifacts/`) | `mext-hermes` (rw), `mext-laptop` (read `artifacts/`) | Litestream for SQLite plus rclone for generated notes; the plan lives in the MEXT repo |
+| MEXT planning (Hermes) | `mext` (`state/`, `artifacts/`) | `mext` (rw; on hermes-vm and the laptop) | Litestream for SQLite plus rclone for generated notes; the plan lives in the MEXT repo |

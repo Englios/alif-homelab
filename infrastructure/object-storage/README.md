@@ -37,27 +37,26 @@ use in Vaultwarden once it is running.
 
 ## Onboarding a project
 
-Each project gets one bucket, with a prefix per kind of data, plus its own users and policies. Never hand out root keys.
+Each project gets one bucket (a prefix per kind of data) and one user with full access to that bucket only. Never hand out root keys.
 
 ```bash
 mc alias set homelab http://s3.munchkin-komodo.ts.net:9000 <root-access> <root-secret>
-mc mb homelab/<project>-<purpose>
-mc version enable homelab/<project>-<purpose>   # keep old object versions
-mc admin user add homelab <project>-<role> <generated-secret>
-mc admin policy create homelab <project>-<role> policy.json
-mc admin policy attach homelab <project>-<role> --user <project>-<role>
+mc mb homelab/<project>
+mc version enable homelab/<project>   # keep old object versions
+mc admin user add homelab <project> <generated-secret>
+mc admin policy create homelab <project>-rw policy.json
+mc admin policy attach homelab <project>-rw --user <project>
 ```
 
-`policy.json` for read-write on a project's buckets (drop the write actions
-for a read-only consumer):
+`policy.json` (full access to the project's bucket only):
 
 ```json
 {
   "Version": "2012-10-17",
   "Statement": [{
     "Effect": "Allow",
-    "Action": ["s3:ListBucket", "s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
-    "Resource": ["arn:aws:s3:::<project>-*", "arn:aws:s3:::<project>-*/*"]
+    "Action": ["s3:*"],
+    "Resource": ["arn:aws:s3:::<project>", "arn:aws:s3:::<project>/*"]
   }]
 }
 ```
@@ -68,7 +67,7 @@ Record each project's keys in Vaultwarden.
 
 | Project | Buckets | Users |
 |---|---|---|
-| MEXT planning (Hermes) | `mext` (`state/`, `artifacts/`) | `mext-hermes` (rw), `mext-laptop` (read `artifacts/`) |
+| MEXT planning (Hermes) | `mext` (`state/`, `artifacts/`) | `mext` (rw) |
 
 ## Notes
 
