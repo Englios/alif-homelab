@@ -1,0 +1,131 @@
+schema_version: 1
+repository: Englios/alif-homelab
+purpose: GitOps configuration for the homelab k3s cluster
+entrypoints:
+  agent: AGENTS.md
+  detailed_index: .agents/INDEX.md
+  human: README.md
+  docs: docs/README.md
+startup:
+  always:
+    - AGENTS.md
+    - .agents/INDEX.md
+  route_required: true
+  max_initial_task_files: 4
+cluster:
+  nodes:
+    debian: {role: control-plane, pool: system, tailscale_ip: 100.96.172.63, hosts_vm: hermes-vm}
+    pop-os: {role: worker, pool: gpu, note: desktop; sleeps and reboots via WOL}
+  gitops: flux
+  flux_source: flux-system GitRepository -> master
+  secrets: {tool: sops, recipient_type: age, flux_secret: flux-system/sops-age, private_key_location: homelab host only}
+  network: {tailnet: munchkin-komodo.ts.net, operator_tag: "tag:k8s", https_certs: true, proxy_class: system}
+  storage_classes: [local-path]
+  access: ssh homelab-debian-remote, then kubectl/flux on the node
+services:
+  object-storage:
+    path: infrastructure/object-storage/
+    flux: clusters/homelab/object-storage.yaml
+    software: rustfs 1.0.3
+    endpoints: {s3: "http://s3.munchkin-komodo.ts.net:9000", console: "http://s3.munchkin-komodo.ts.net:9001/rustfs/console/"}
+    plan: .agents/plans/Object_Storage_Plan.md
+  vaultwarden:
+    path: infrastructure/vaultwarden/
+    flux: clusters/homelab/vaultwarden.yaml
+    endpoint: "https://vaultwarden.munchkin-komodo.ts.net"
+    runbook: docs/runbooks/vaultwarden.md
+  tailscale-operator:
+    path: infrastructure/tailscale-operator/
+    flux: clusters/homelab/tailscale-operator-flux.yaml
+  aitrade:
+    path: clusters/homelab/aitrade/
+    flux: clusters/homelab/aitrade-flux.yaml
+    manifests_repo: Englios/ai-trade
+  keycloak: {path: infrastructure/keycloak/, managed_by: manual}
+  monitoring: {path: infrastructure/monitoring/, managed_by: manual}
+  bore-server: {path: infrastructure/bore-server/, managed_by: manual}
+  minecraft: {path: apps/minecraft-server/, managed_by: manual, legacy: true}
+routes:
+  new_service:
+    primary: [clusters/homelab/README.md, infrastructure/object-storage/, .agents/skills/flux-change-verification/SKILL.md]
+    optional: [clusters/homelab/node-labels.md, docs/howto/tailscale-k3s-networking.md]
+  object_storage:
+    primary: [infrastructure/object-storage/README.md, .agents/plans/Object_Storage_Plan.md]
+  vaultwarden:
+    primary: [infrastructure/vaultwarden/README.md, docs/runbooks/vaultwarden.md]
+    optional: [.agents/plans/Backup_Plan.md]
+  secrets:
+    primary: [.agents/skills/sops-secret-edit/SKILL.md, clusters/homelab/secrets/README.md]
+    optional: [docs/howto/sops-secrets.md, .sops.yaml]
+  flux_operations:
+    primary: [Makefile.cluster, docs/guides/flux-setup.md]
+  tailscale_exposure:
+    primary: [infrastructure/tailscale-operator/, infrastructure/vaultwarden/ingress.yaml, infrastructure/object-storage/service.yaml]
+  aitrade:
+    primary: [clusters/homelab/aitrade/README.md, clusters/homelab/aitrade-flux.yaml]
+    optional: [docs/plans/flux-move.md, docs/runbooks/flux-cutover.md]
+  cluster_access:
+    primary: [docs/guides/k8s-access-index.md]
+    optional: [infrastructure/access/, infrastructure/keycloak/]
+  monitoring:
+    primary: [infrastructure/monitoring/kustomization.yaml]
+  minecraft:
+    primary: [apps/minecraft-server/README.md]
+  wake_on_lan:
+    primary: [docs/guides/headless-wol-overview.md, scripts/wol-pc.sh]
+  gpu_worker:
+    primary: [scripts/setup-gpu-worker.sh, misc/runtime-nvidia.yaml]
+  backups:
+    primary: [.agents/plans/Backup_Plan.md]
+  hardware_upgrade:
+    primary: [.agents/plans/Hardware_Upgrade_Plan.md, .agents/plans/Backup_Plan.md]
+  provisioning:
+    primary: [.agents/plans/Homelab_Provisioning_Plan.md]
+    optional: [docs/guides/k3s-setup.md]
+  pr_review:
+    primary: [.agents/skills/pr-review-summary/SKILL.md]
+  review_remediation:
+    primary: [.agents/skills/review-remediation/SKILL.md]
+boundaries:
+  clusters/homelab: {purpose: flux bootstrap root, thin flux kustomizations, sops secrets, rule: keep thin}
+  clusters/homelab/flux-system: {purpose: flux-generated bootstrap, hand_edit: false}
+  clusters/homelab/secrets: {purpose: encrypted secrets and examples, plaintext_allowed: false}
+  infrastructure: {purpose: native gitops service manifests, new_services_here: true}
+  apps: {purpose: legacy manual manifests, new_services_here: false}
+  docs: {purpose: human guides, how-tos, runbooks}
+  .agents: {purpose: index, plans, skills}
+  .slim/deepwork: {purpose: historical agent working state, skip_by_default: true}
+  GEMINI.md: {purpose: gemini tutoring persona, repository_rules: false}
+hard_rules:
+  - no_kustomize_namespace_override_with_sops_secret
+  - http_apps_use_tailscale_ingress_for_https
+  - tailscale_proxies_use_proxy_class_system
+  - networkpolicy_namespace_selector_uses_metadata_name_label
+  - pin_stateful_services_to_a_node_pool
+  - merge_to_master_deploys
+plans:
+  object_storage: {path: .agents/plans/Object_Storage_Plan.md, status: active}
+  backup: {path: .agents/plans/Backup_Plan.md, status: active}
+  hardware_upgrade: {path: .agents/plans/Hardware_Upgrade_Plan.md, status: active}
+  provisioning: {path: .agents/plans/Homelab_Provisioning_Plan.md, status: kiv}
+skills:
+  flux_change_verification: {path: .agents/skills/flux-change-verification/SKILL.md, trigger: any_manifest_change}
+  sops_secret_edit: {path: .agents/skills/sops-secret-edit/SKILL.md, trigger: create_or_edit_secret}
+  pr_review_summary:
+    path: .agents/skills/pr-review-summary/SKILL.md
+    severity_markers: {critical: red, important: yellow, improvement: blue}
+  review_remediation:
+    path: .agents/skills/review-remediation/SKILL.md
+    trigger: review_feedback_on_existing_branch_or_pr
+    acknowledgement_only_is_complete: false
+change_policy:
+  branch_prefix: agent/
+  pull_request_required: true
+  merge_method: squash
+  direct_master_push: false
+  secrets_allowed: false
+  image_tags_pinned: true
+  post_merge_check: flux_kustomization_ready_and_workload_healthy
+index_maintenance:
+  synchronized_files: [.agents/INDEX.md, .agents/repo-index.yaml]
+  update_when: [service_changes, task_route_changes, plan_changes, skill_changes, ownership_changes]
