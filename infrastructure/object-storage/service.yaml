@@ -7,6 +7,8 @@ metadata:
   labels:
     app.kubernetes.io/name: rustfs
     app.kubernetes.io/instance: rustfs
+    # Run the Tailscale proxy on debian (see infrastructure/tailscale-operator).
+    tailscale.com/proxy-class: system
   annotations:
     # The Tailscale operator creates a tailnet device named 's3':
     #   S3 API   http://s3.<tailnet>.ts.net:9000

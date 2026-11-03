@@ -18,4 +18,5 @@ resources:
   - namespace.yaml
   - helmrepository.yaml
   - helmrelease.yaml
+  - proxyclass-system.yaml
   - ../../clusters/homelab/secrets/operator-oauth.sops.yaml
