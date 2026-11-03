@@ -23,14 +23,21 @@ One shared, S3-compatible store on the homelab that any project can use with its
 - [x] Deploy RustFS (#14). Done when the Flux Kustomization is Ready and the pod runs.
 - [x] Pin Tailscale proxies to `debian` (#16). Done when `s3` `/health` returns 200 over the tailnet (verified 2026-11-03).
 
+- [x] Root credentials copied into Vaultwarden (Alif, 2026-11-03).
+- [x] Onboard MEXT (2026-11-03): buckets `mext-state` and `mext-artifacts` (versioning on); policies `mext-hermes-rw` (`s3:*` on both) and `mext-laptop-ro` (read and list `mext-artifacts`); users `mext-hermes` and `mext-laptop`. Verified: each key reaches only its own buckets and neither can create buckets.
+- [x] Tailnet reachability: `hermes-vm` and the laptop both reach `s3:9000`.
+
 ## Next
 
-1. [ ] Copy the root credentials into Vaultwarden. Done when the entry exists.
-2. [ ] Onboard MEXT. Create the buckets `mext-state` and `mext-artifacts` (versioning on), the users `mext-hermes` (rw on both) and `mext-laptop` (read `mext-artifacts`), and store their keys in Vaultwarden. Done when each key can list only its own buckets.
-3. [ ] Tailnet ACL check. Done when `hermes-vm` and the laptop reach `s3:9000`, and nothing that needs no access can.
-4. [ ] Offsite copy (see `Backup_Plan.md`). Done before any bucket holds data that exists nowhere else.
-5. [ ] Monitoring: a health alert for RustFS and for volume usage.
-6. [ ] Upgrades: move to a newer RustFS release once it has been out for about two weeks; read the release notes for breaking changes.
+1. [ ] Copy the `mext-hermes` and `mext-laptop` keys into Vaultwarden. Working copies: `~/.config/mext-app/s3.env` (mode 600) on `hermes-vm` and on the laptop.
+2. [ ] Offsite copy (see `Backup_Plan.md`). Done before any bucket holds data that exists nowhere else.
+3. [ ] Monitoring: a health alert for RustFS and for volume usage.
+4. [ ] Upgrades: move to a newer RustFS release once it has been out for about two weeks; read the release notes for breaking changes.
+
+## Onboarding without the console
+
+There is no `mc` on the hosts. The admin API takes plain JSON over SigV4, so `curl --aws-sigv4 "aws:amz:us-east-1:s3"` works:
+`PUT /rustfs/admin/v3/add-canned-policy?name=<p>`, `PUT /rustfs/admin/v3/add-user?accessKey=<u>` with `{"secretKey":…,"status":"enabled"}`, and `POST /rustfs/admin/v3/idp/builtin/policy/attach` with `{"policies":[…],"user":…}`. Buckets: `aws s3api create-bucket` / `put-bucket-versioning`.
 
 ## Open questions
 
